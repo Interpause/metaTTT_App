@@ -55,10 +55,10 @@ function gen_tri(above,left,conf){
 }
 
 //Read-only outside of module.					
-exports.bgDefaults = bgDefaults;
+module.exports.bgDefaults = bgDefaults;
 
 /** Generates SVG background. Pass changes to default settings as Object. */
-exports.genBg = function(kwargs){
+module.exports.genBg = function(kwargs){
 	let conf = Object.assign({},bgDefaults);
 	if(kwargs!=null) Object.entries(kwargs).forEach(([k,v])=>conf[k]=v);
 	

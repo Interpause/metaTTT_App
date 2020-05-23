@@ -1,4 +1,4 @@
-const enums = require("./enums");
+const enums = require("./common/utils/enums");
 
 window.client = {
 	name:		"Guest",//Online name of client
@@ -23,45 +23,42 @@ window.client = {
 		body:undefined
 	},
 	
-	getSavedSessions: function(){
-		return this.pingServer(enums.getSessions).then(data => {
-			if(data == null) return;
-			genSessMenu(data[enums.sessionMenu],false);
-		});
+	getSavedSessions:async function(){
+		let data = await this.pingServer(enums.getSessions);
+		if(data == null) return;
+		genSessMenu(data[enums.sessionMenu],false);
 	},
 	
-	getSpecSessions: function(){
-		return this.pingServer(enums.getSpecSessions).then(data => {
-			if(data == null) return;
-			genSessMenu(data[enums.spectatorMenu],true);
-		});
+	getSpecSessions:async function(){
+		let data = await this.pingServer(enums.getSpecSessions);
+		if(data == null) return;
+		genSessMenu(data[enums.spectatorMenu],true);
 	},
 	
-	findSession: function(){
-		return this.pingServer(enums.findSession).then(data => {
-			if(data == null) return;
-			client.cur_gid = data[enums.findingSession];
-		});
+	findSession:async function(){
+		let data = await this.pingServer(enums.findSession);
+		if(data == null) return;
+		client.cur_gid = data[enums.findingSession];
 	},
 	
-	joinSession: function(Gid){
+	joinSession:async function(Gid){
 		if(Gid == null) Gid = client.cur_gid;
-		return this.pingServer(enums.join,{gid:Gid}).then(data => {
-			if(data == null) return;
-			client.online = true;
-			client.cur_gid = data.gid;
-			client.eventChecker();
-			//TODO: State == error, throw GUI error
-			let state = data[enums.onlineGame];
-			if(state == null){
-				//console.log("STATE NOT SENT");
-				client.unloaded = true;
-				return Promise.resolve();
-			}
-			if(state.plyrs.indexOf(client.pid) > -1) guiState.forfeitBtn.disabled = false;
-			else guiState.forfeitBtn.disabled = true;
-			return loadGame(state,true);
-		});
+		let data = await this.pingServer(enums.join,{gid:Gid});
+		if(data == null) return;
+
+		client.online = true;
+		client.cur_gid = data.gid;
+		client.eventChecker();
+		//TODO: State == error, throw GUI error
+		let state = data[enums.onlineGame];
+		if(state == null){
+			//console.log("STATE NOT SENT");
+			client.unloaded = true;
+			return Promise.resolve();
+		}
+		if(state.player_ids.indexOf(client.pid) > -1) guiState.forfeitBtn.disabled = false;
+		else guiState.forfeitBtn.disabled = true;
+		return loadGame(state,true);
 	},
 	
 	quitSession: function(){
@@ -69,20 +66,21 @@ window.client = {
 	},
 	
 	eventLoops: 0, //To ensure that eventChecker isnt spamming.
-	eventChecker: function(curLoop){
+	eventChecker:async function(curLoop){
 		if(curLoop == null){
 			curLoop = client.eventLoops+1;
 			client.eventLoops = client.eventLoops+1;
 		}else if(curLoop != client.eventLoops) return;
 		//console.log(`LOOP ${curLoop}`);
-		this.pingServer(enums.openPoll,{},true).then(data => {
+		try{
+			let data = await this.pingServer(enums.openPoll,{},true);
 			if(client.online){
 				client.eventChecker(curLoop);
 				if(data == null) return;				
 				if(data.gid != client.cur_gid) return;
 				if(!client.unloaded){
 					if(data[enums.onlineGame] != null){
-						gui.receivePlayersInfo(data[enums.onlineGame].plyrs);
+						gui.receivePlayersInfo(data[enums.onlineGame].player_ids);
 						gui.receiveBoard(data[enums.onlineGame]);
 					}
 				}else{
@@ -90,23 +88,22 @@ window.client = {
 					client.unloaded = false;
 				}
 			}
-		}).catch((err) => {
-			console.log(err);
+		}catch(e){
+			console.log(e);
 			console.log("Refreshing long poll...");
 			if(client.online) client.eventChecker(curLoop);
-		});
+		};
 	},
 	
-	makeMove: function(Move){
-		this.pingServer(enums.move,{gid:this.cur_gid,move:Move}).then(data => {
-			if(data[enums.onlineGame] == null) return;
-			gui.receivePlayersInfo(data[enums.onlineGame].plyrs);
-			gui.receiveBoard(data[enums.onlineGame]);
-		});
+	makeMove:async function(Move){
+		let data = await this.pingServer(enums.move,{gid:this.cur_gid,move:Move});
+		if(data[enums.onlineGame] == null) return;
+		gui.receivePlayersInfo(data[enums.onlineGame].player_ids);
+		gui.receiveBoard(data[enums.onlineGame]);
 	},
 	
 	/** Wrapper for sendServer that adds standard data, handles errors appropriately, and adds animation for the screen. */
-	pingServer: function(command,others,isPoll){
+	pingServer:async function(command,others,isPoll){
 		isPoll = (isPoll==null)?false:isPoll;
 		if(!isPoll)displayLoadingIndicator();
 		
@@ -117,25 +114,25 @@ window.client = {
 		data.name = this.name;
 		
 		//TODO sendHist and sendEvent
-		
-		return this.sendServer(data,this.tries,isPoll).then((reply) => {
+		try{
+			let reply = await this.sendServer(data,this.tries,isPoll);
 			console.log(reply);
 			if(!isPoll) hideLoadingIndicator();
 			//if(reply[enums.eventReceived] != null) //TODO event manager
-			return Promise.resolve(reply);
-		}).catch((e) => {
+			return reply;
+		}catch(e){
 			if(!isPoll) hideLoadingIndicator();
 			if(e.name != "AbortError"){
 				weakInternetAnim();
 				console.log(e);
 			}
-			return Promise.resolve();
-		});
+			return {};
+		}
 	},
 
 	/** Recursive retry based server sending. While accounting for abortion by menu change instead of timeout. */
-	sendServer: function(data,tries,isPoll){
-		if(tries <= 0) return Promise.reject(new Error(enums.error));
+	sendServer: async function(data,tries,isPoll){
+		if(tries <= 0) throw new Error(enums.error);
 		
 		let req = Object.assign({},this.reqConf);
 		req.body = JSON.stringify(data);
@@ -145,17 +142,18 @@ window.client = {
 		this.cur_fetches.push(controller);
 		
 		let reqDone = false;
-		setTimeout(() => {
+		wait(this.timeout).then(() => {
 			if(reqDone) return;
 			controller.abort();
-		},this.timeout);
-		return fetch(this.url,req).then((res) => {
-			reqDone = true;
-			return res.json();
-		}).catch((e) => {
-			if(e.name == "AbortError" && this.cur_fetches.length > 0 && !isPoll) return this.sendServer(data,tries-1,isPoll);
-			return Promise.reject(e);
 		});
+		try{
+			let res = await fetch(this.url,req);
+			reqDone = true;
+			return await res.json();
+		}catch(e){
+			if(e.name == "AbortError" && this.cur_fetches.length > 0 && !isPoll) return await this.sendServer(data,tries-1,isPoll);
+			throw e;
+		}
 	},
 	
 	/** Cancels all current fetches. */
