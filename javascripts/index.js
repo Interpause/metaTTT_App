@@ -1,4 +1,5 @@
 const Session = require("./common/classes/session");
+const gameState = require("./common/classes/gameState");
 window.gconf = require("./common/utils/game_config");
  
 window.gen_uuid = c => ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
@@ -12,21 +13,21 @@ window.startLocalGame = async function(){
 	game.init(window.gconf);
 	for(let i = 0; i < window.gconf.num_players; i++) game.addPlayer(client.pid);
 	game.start();
-	gui.updateContainer();
 	hideLoadingIndicator();
 }
 
-window.loadGame = async function(state,isOnline){
+window.loadGame = async function(statedata,isOnline){
 	displayLoadingIndicator();
-	await gui.init(guiConfig,state.config,isOnline);
-	if(isOnline==true){
+	await gui.init(guiConfig,statedata.config,isOnline);
+	if(isOnline){
+		let state = new gameState(statedata,true);
+		state.names = statedata.names; //TODO: this is a temporary fix... .names in the first place was a temporary fix till pid retrieval worked properly
 		gui.receivePlayersInfo(state.player_ids);
 		gui.receiveBoard(state);
 	}else{
 		game = new Session(gui);
-		game.restoreSession(state);
+		game.restoreSession(statedata);
 		game.start();
-		gui.updateContainer();
 	}
 	hideLoadingIndicator();
 }
@@ -95,12 +96,13 @@ window.app = {
 		if(save==null) start = startLocalGame();
 		else{
 			try{
-				await loadGame(JSON.parse(save));
+				await loadGame(JSON.parse(save),false);
 			}catch(e){
 				console.log(e);
 				await startLocalGame();
 			}
 		}
+		document.querySelector("#splash").style.display = "none";
     }
 };
 

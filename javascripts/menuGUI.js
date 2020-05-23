@@ -43,8 +43,8 @@ guiState.onlinePg.arrive = async () => {
 	client.onlineState = enums.sessionMenu;
 	client.getSavedSessions();
 };
-guiState.onlineGamePg.arrive = async () => {return onlineGrid()};
-guiState.spectatePg.arrive = async () => {client.getSpecSessions();};
+guiState.onlineGamePg.arrive = async () => onlineGrid();
+guiState.spectatePg.arrive = async () => client.getSpecSessions();
 
 //Functions to be called when focus is leaving from the page.
 guiState.gamePg.leave = async () => {};
@@ -263,7 +263,7 @@ window.resetGrid = async function(){
 	guiState.btnReplayInProg = true;
 	await hideGrid();
 	gui.state = {};
-	guiConfig.cont = document.querySelectorAll(".TTTgame")[0];
+	guiConfig.cont = document.querySelector("#gamePg .TTTgame");
 	await startLocalGame();
 	await showGrid();
 	guiState.btnReplayInProg = false
@@ -271,7 +271,7 @@ window.resetGrid = async function(){
 
 //Loads online grid
 window.onlineGrid = async function(){
-	guiConfig.cont = document.querySelectorAll(".TTTgame")[1];
+	guiConfig.cont = document.querySelector("#onlineGamePg .TTTgame");
 	gui.state = {};
 	guiState.header.innerHTML = "Waiting...";
 	let conc = [hideGrid(),client.joinSession()];
@@ -285,7 +285,7 @@ window.updateHeader = function(){
 	if(gui.state.player_ids.length < gui.state.config.num_players) guiState.header.innerHTML = "Waiting...";
 	else{
 		if(gui.state.cur_player == client.pid) guiState.header.innerHTML = `Your Turn @ ${gui.state.turns} moves`;
-		else guiState.header.innerHTML = gui.state.names[gui.state.cur_player_ind] + `'s Turn @ ${gui.state.turns} moves`;
+		else guiState.header.innerHTML = gui.state.names[gui.state.cur_player_ind] + `'s Turn @ ${gui.state.turns} moves`; //TODO: state isnt supposed to have names
 	}
 }
 

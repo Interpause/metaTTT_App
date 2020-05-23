@@ -535,8 +535,8 @@ window.client = {
 	online:		false,	//Flag for eventChecker to stop.
 	timeout:	5000,	//Timeout for fetch request including polls
 	tries:		3,		//Number of retries, not applicable for polls
-	url:		"http://ec2-52-207-243-99.compute-1.amazonaws.com:8080",
-	//url:		"http://127.0.0.1:8080",
+	//url:		"http://ec2-52-207-243-99.compute-1.amazonaws.com:8080",
+	url:		"http://127.0.0.1:8080",
 	cur_fetches:[],		//Current fetches in progress
 	reqConf: {			//The request
 		method:"POST",
@@ -605,10 +605,7 @@ window.client = {
 				if(data == null) return;				
 				if(data.gid != client.cur_gid) return;
 				if(!client.unloaded){
-					if(data[enums.onlineGame] != null){
-						gui.receivePlayersInfo(data[enums.onlineGame].player_ids);
-						gui.receiveBoard(data[enums.onlineGame]);
-					}
+					if(data[enums.onlineGame] != null) loadGame(data[enums.onlineGame],true);
 				}else{
 					loadGame(data[enums.onlineGame],true);
 					client.unloaded = false;
@@ -624,8 +621,7 @@ window.client = {
 	makeMove:async function(Move){
 		let data = await this.pingServer(enums.move,{gid:this.cur_gid,move:Move});
 		if(data[enums.onlineGame] == null) return;
-		gui.receivePlayersInfo(data[enums.onlineGame].player_ids);
-		gui.receiveBoard(data[enums.onlineGame]);
+		loadGame(data[enums.onlineGame],true);
 	},
 	
 	/** Wrapper for sendServer that adds standard data, handles errors appropriately, and adds animation for the screen. */
@@ -738,7 +734,7 @@ module.exports = class State {
 		this.checkMoveValid(move);
 		this.grid[move[0]][move[1]].winner = this.cur_player_ind; //winner is set as index, not id
 		this.history.push([this.cur_player,move]);
-		this.updateWins();
+		this.updateWins(move[0]);
 
 		if(this.grid[move[1]].winner != null) this.cur_board = null;
 		else this.cur_board = move[1];
@@ -748,21 +744,21 @@ module.exports = class State {
 	}
 
 	//Updates wins in board
-	updateWins(){
+	updateWins(ind){
 		if(this.winner != null) return;
 
-		let small_win = this.checkWin(this.grid[this.cur_board]);
-		if(small_win == -1) this.grid[this.cur_board].winner = -1;
+		let small_win = this.checkWin(this.grid[ind]);
+		if(small_win == -1) this.grid[ind].winner = -1;
 		else if(small_win == 1){
-			this.grid[this.cur_board].winner = this.cur_player_ind;
+			this.grid[ind].winner = this.cur_player_ind;
 
 			let big_win = this.checkWin(this.grid);
 			if(big_win == -1){
 				this.grid.winner = -1;
 				this.winner = -1;
 			}else if(big_win == 1){
-				this.grid.winner = this.plyr;
-				this.winner = this.plyr;
+				this.grid.winner = this.cur_player_ind;
+				this.winner = this.cur_player_ind;
 			}
 		}
 	}
@@ -773,7 +769,7 @@ module.exports = class State {
 		for(let n = 1; n <= this.config.size; n++){
 			for(let check in this.config.checks){
 				let win = true;
-				let crd = oD2D(n);
+				let crd = this.oD2D(n);
 				for(let i = 1; win && i < this.config.win_req; i++){
 					if(board[n].winner == null){
 						win = false;
@@ -785,7 +781,7 @@ module.exports = class State {
 						win = false;
 						break;
 					}
-					if(board[tD1D(ncrd)].winner != board[n].winner){
+					if(board[this.tD1D(ncrd)].winner != board[n].winner){
 						win = false;
 						break;
 					}
@@ -898,11 +894,11 @@ module.exports = class Session extends EventEmitter {
 		if(this.isStarted) throw new Error(enums.started);
 		this.isStarted = true;
 		if(this.num_players != this.max_players) throw new Error(enums.error);
-		if(!this.online){
-			this.gui.receiveBoard(this.state);
-			this.gui.receivePlayersInfo(this.players);
-		}
 		this.state.player_ids = this.player_ids;
+		if(!this.online){
+			this.gui.receivePlayersInfo(this.player_ids);
+			this.gui.receiveBoard(this.state);
+		}
 	}
 }
 },{"../classes/gameState":3,"../utils/enums":5,"events":1}],5:[function(require,module,exports){
@@ -957,7 +953,7 @@ const enums = require("./common/utils/enums");
  * DEFAULT GUI SETTINGS *
  ************************/
 window.guiConfig = {};
-guiConfig.cont = document.querySelectorAll(".TTTgame")[0]; 		/* Class of container for state. */
+guiConfig.cont = document.querySelector("#gamePg .TTTgame"); 	/* Class of container for state. */
 guiConfig.grid_pfx = "grid";									/* Assumed class prefix of grid boards. */
 guiConfig.sqr_pfx = "btn";										/* Assumed class prefix of grid squares. */
 
@@ -994,9 +990,7 @@ window.gui = {
 		this.guiconf.cont.innerHTML = "";
 		
 		for(let y1 = 1;y1 <= this.gconf.grid_len;y1++){
-			await wait(0);//anti-freeze
 			for(let x1 = 1;x1 <= this.gconf.grid_len;x1++){
-				await wait(0);
 				let grid = document.createElement("div");
 				grid.style.setProperty("grid-column",`${x1} / span 1`);
 				grid.style.setProperty("grid-row",`${y1} / span 1`);
@@ -1010,9 +1004,7 @@ window.gui = {
 				this.olyList.push(overlay);
 					
 				for(let y2 = 1;y2 <= this.gconf.grid_len;y2++){
-					await wait(0);
 					for(let x2 = 1;x2 <= this.gconf.grid_len;x2++){
-						await wait(0); 
 						let btn = document.createElement("button");
 						btn.style.setProperty("grid-column",`${x2} / span 1`);
 						btn.style.setProperty("grid-row",`${y2} / span 1`);
@@ -1039,11 +1031,11 @@ window.gui = {
 	},
 	
 	/** Called by server when sending over gameState. */
-	receiveBoard:function(state){		
+	receiveBoard:async function(state){		
 		this.state = state;
-		this.updateContainer();
-		updateHeader();
 		this.hist.push([enums.turn,this.state.cur_player_ind]);
+		window.updateHeader();
+		return this.updateContainer();
 	},
 	
 	/** Called by server to update local game on history of game. */
@@ -1061,7 +1053,6 @@ window.gui = {
 		for(let btn of gui.btnList) btn.disabled = true; //Very immediate.
 		//Individual buttons have to be controlled in some cases.
 		for(let c = 0; c < gui.btnList.length; c++){
-			await wait(0);
 			let btn = gui.btnList[c];
 			let i = btn.getAttribute(gui.guiconf.grid_pfx);
 			let n = btn.getAttribute(gui.guiconf.sqr_pfx);
@@ -1086,14 +1077,13 @@ window.gui = {
 		
 		//Controls overlays.
 		for(let i = 1; i <= gui.olyList.length; i++){
-			await wait(0);
 			let enabled = false;
 			let overlay = gui.olyList[i-1];
 			if(gui.state.player_ids.length < gui.state.config.num_players) enabled = true;
 			else if(gui.state.cur_player != client.pid) enabled = true;	
-			else if(gui.state.cur_board == null || gui.state.cur_board == i) enabled = false;
+			else if(gui.state.cur_board == null | gui.state.cur_board == i) enabled = false;
 			else enabled = true;
-			
+
 			if(enabled){
 				overlay.style.setProperty("transition","opacity 0.2s ease-in 0s");
 				overlay.style.setProperty("opacity", "0.6");
@@ -1144,6 +1134,7 @@ window.gui = {
 }	
 },{"./common/classes/gameState":3,"./common/utils/enums":5}],8:[function(require,module,exports){
 const Session = require("./common/classes/session");
+const gameState = require("./common/classes/gameState");
 window.gconf = require("./common/utils/game_config");
  
 window.gen_uuid = c => ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
@@ -1157,21 +1148,21 @@ window.startLocalGame = async function(){
 	game.init(window.gconf);
 	for(let i = 0; i < window.gconf.num_players; i++) game.addPlayer(client.pid);
 	game.start();
-	gui.updateContainer();
 	hideLoadingIndicator();
 }
 
-window.loadGame = async function(state,isOnline){
+window.loadGame = async function(statedata,isOnline){
 	displayLoadingIndicator();
-	await gui.init(guiConfig,state.config,isOnline);
-	if(isOnline==true){
+	await gui.init(guiConfig,statedata.config,isOnline);
+	if(isOnline){
+		let state = new gameState(statedata,true);
+		state.names = statedata.names; //TODO: this is a temporary fix... .names in the first place was a temporary fix till pid retrieval worked properly
 		gui.receivePlayersInfo(state.player_ids);
 		gui.receiveBoard(state);
 	}else{
 		game = new Session(gui);
-		game.restoreSession(state);
+		game.restoreSession(statedata);
 		game.start();
-		gui.updateContainer();
 	}
 	hideLoadingIndicator();
 }
@@ -1240,17 +1231,18 @@ window.app = {
 		if(save==null) start = startLocalGame();
 		else{
 			try{
-				await loadGame(JSON.parse(save));
+				await loadGame(JSON.parse(save),false);
 			}catch(e){
 				console.log(e);
 				await startLocalGame();
 			}
 		}
+		document.querySelector("#splash").style.display = "none";
     }
 };
 
 app.initialize();
-},{"./common/classes/session":4,"./common/utils/game_config":6}],9:[function(require,module,exports){
+},{"./common/classes/gameState":3,"./common/classes/session":4,"./common/utils/game_config":6}],9:[function(require,module,exports){
 const bgGen = require("./triangle_background");
 const enums = require("./common/utils/enums");
 const filter = new (require("bad-words"))();
@@ -1296,8 +1288,8 @@ guiState.onlinePg.arrive = async () => {
 	client.onlineState = enums.sessionMenu;
 	client.getSavedSessions();
 };
-guiState.onlineGamePg.arrive = async () => {return onlineGrid()};
-guiState.spectatePg.arrive = async () => {client.getSpecSessions();};
+guiState.onlineGamePg.arrive = async () => onlineGrid();
+guiState.spectatePg.arrive = async () => client.getSpecSessions();
 
 //Functions to be called when focus is leaving from the page.
 guiState.gamePg.leave = async () => {};
@@ -1516,7 +1508,7 @@ window.resetGrid = async function(){
 	guiState.btnReplayInProg = true;
 	await hideGrid();
 	gui.state = {};
-	guiConfig.cont = document.querySelectorAll(".TTTgame")[0];
+	guiConfig.cont = document.querySelector("#gamePg .TTTgame");
 	await startLocalGame();
 	await showGrid();
 	guiState.btnReplayInProg = false
@@ -1524,7 +1516,7 @@ window.resetGrid = async function(){
 
 //Loads online grid
 window.onlineGrid = async function(){
-	guiConfig.cont = document.querySelectorAll(".TTTgame")[1];
+	guiConfig.cont = document.querySelector("#onlineGamePg .TTTgame");
 	gui.state = {};
 	guiState.header.innerHTML = "Waiting...";
 	let conc = [hideGrid(),client.joinSession()];
@@ -1538,7 +1530,7 @@ window.updateHeader = function(){
 	if(gui.state.player_ids.length < gui.state.config.num_players) guiState.header.innerHTML = "Waiting...";
 	else{
 		if(gui.state.cur_player == client.pid) guiState.header.innerHTML = `Your Turn @ ${gui.state.turns} moves`;
-		else guiState.header.innerHTML = gui.state.names[gui.state.cur_player_ind] + `'s Turn @ ${gui.state.turns} moves`;
+		else guiState.header.innerHTML = gui.state.names[gui.state.cur_player_ind] + `'s Turn @ ${gui.state.turns} moves`; //TODO: state isnt supposed to have names
 	}
 }
 

@@ -9,8 +9,8 @@ window.client = {
 	online:		false,	//Flag for eventChecker to stop.
 	timeout:	5000,	//Timeout for fetch request including polls
 	tries:		3,		//Number of retries, not applicable for polls
-	url:		"http://ec2-52-207-243-99.compute-1.amazonaws.com:8080",
-	//url:		"http://127.0.0.1:8080",
+	//url:		"http://ec2-52-207-243-99.compute-1.amazonaws.com:8080",
+	url:		"http://127.0.0.1:8080",
 	cur_fetches:[],		//Current fetches in progress
 	reqConf: {			//The request
 		method:"POST",
@@ -79,10 +79,7 @@ window.client = {
 				if(data == null) return;				
 				if(data.gid != client.cur_gid) return;
 				if(!client.unloaded){
-					if(data[enums.onlineGame] != null){
-						gui.receivePlayersInfo(data[enums.onlineGame].player_ids);
-						gui.receiveBoard(data[enums.onlineGame]);
-					}
+					if(data[enums.onlineGame] != null) loadGame(data[enums.onlineGame],true);
 				}else{
 					loadGame(data[enums.onlineGame],true);
 					client.unloaded = false;
@@ -98,8 +95,7 @@ window.client = {
 	makeMove:async function(Move){
 		let data = await this.pingServer(enums.move,{gid:this.cur_gid,move:Move});
 		if(data[enums.onlineGame] == null) return;
-		gui.receivePlayersInfo(data[enums.onlineGame].player_ids);
-		gui.receiveBoard(data[enums.onlineGame]);
+		loadGame(data[enums.onlineGame],true);
 	},
 	
 	/** Wrapper for sendServer that adds standard data, handles errors appropriately, and adds animation for the screen. */

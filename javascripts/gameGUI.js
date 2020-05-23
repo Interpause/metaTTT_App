@@ -5,7 +5,7 @@ const enums = require("./common/utils/enums");
  * DEFAULT GUI SETTINGS *
  ************************/
 window.guiConfig = {};
-guiConfig.cont = document.querySelectorAll(".TTTgame")[0]; 		/* Class of container for state. */
+guiConfig.cont = document.querySelector("#gamePg .TTTgame"); 	/* Class of container for state. */
 guiConfig.grid_pfx = "grid";									/* Assumed class prefix of grid boards. */
 guiConfig.sqr_pfx = "btn";										/* Assumed class prefix of grid squares. */
 
@@ -42,9 +42,7 @@ window.gui = {
 		this.guiconf.cont.innerHTML = "";
 		
 		for(let y1 = 1;y1 <= this.gconf.grid_len;y1++){
-			await wait(0);//anti-freeze
 			for(let x1 = 1;x1 <= this.gconf.grid_len;x1++){
-				await wait(0);
 				let grid = document.createElement("div");
 				grid.style.setProperty("grid-column",`${x1} / span 1`);
 				grid.style.setProperty("grid-row",`${y1} / span 1`);
@@ -58,9 +56,7 @@ window.gui = {
 				this.olyList.push(overlay);
 					
 				for(let y2 = 1;y2 <= this.gconf.grid_len;y2++){
-					await wait(0);
 					for(let x2 = 1;x2 <= this.gconf.grid_len;x2++){
-						await wait(0); 
 						let btn = document.createElement("button");
 						btn.style.setProperty("grid-column",`${x2} / span 1`);
 						btn.style.setProperty("grid-row",`${y2} / span 1`);
@@ -87,11 +83,11 @@ window.gui = {
 	},
 	
 	/** Called by server when sending over gameState. */
-	receiveBoard:function(state){		
+	receiveBoard:async function(state){		
 		this.state = state;
-		this.updateContainer();
-		updateHeader();
 		this.hist.push([enums.turn,this.state.cur_player_ind]);
+		window.updateHeader();
+		return this.updateContainer();
 	},
 	
 	/** Called by server to update local game on history of game. */
@@ -109,7 +105,6 @@ window.gui = {
 		for(let btn of gui.btnList) btn.disabled = true; //Very immediate.
 		//Individual buttons have to be controlled in some cases.
 		for(let c = 0; c < gui.btnList.length; c++){
-			await wait(0);
 			let btn = gui.btnList[c];
 			let i = btn.getAttribute(gui.guiconf.grid_pfx);
 			let n = btn.getAttribute(gui.guiconf.sqr_pfx);
@@ -134,14 +129,13 @@ window.gui = {
 		
 		//Controls overlays.
 		for(let i = 1; i <= gui.olyList.length; i++){
-			await wait(0);
 			let enabled = false;
 			let overlay = gui.olyList[i-1];
 			if(gui.state.player_ids.length < gui.state.config.num_players) enabled = true;
 			else if(gui.state.cur_player != client.pid) enabled = true;	
-			else if(gui.state.cur_board == null || gui.state.cur_board == i) enabled = false;
+			else if(gui.state.cur_board == null | gui.state.cur_board == i) enabled = false;
 			else enabled = true;
-			
+
 			if(enabled){
 				overlay.style.setProperty("transition","opacity 0.2s ease-in 0s");
 				overlay.style.setProperty("opacity", "0.6");
