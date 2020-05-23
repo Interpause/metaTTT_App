@@ -1,49 +1,197 @@
 <!DOCTYPE html>
-<!--
-    Licensed to the Apache Software Foundation (ASF) under one
-    or more contributor license agreements.  See the NOTICE file
-    distributed with this work for additional information
-    regarding copyright ownership.  The ASF licenses this file
-    to you under the Apache License, Version 2.0 (the
-    "License"); you may not use this file except in compliance
-    with the License.  You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing,
-    software distributed under the License is distributed on an
-    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-     KIND, either express or implied.  See the License for the
-    specific language governing permissions and limitations
-    under the License.
--->
 <html>
     <head>
-        <!--
-        Customize this policy to fit your own app's needs. For more guidance, see:
-            https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content-security-policy
-        Some notes:
-            * gap: is required only on iOS (when using UIWebView) and is needed for JS->native communication
-            * https://ssl.gstatic.com is required only on Android and is needed for TalkBack to function properly
-            * Disables use of inline scripts in order to mitigate risk of XSS vulnerabilities. To change this:
-                * Enable inline JS: add 'unsafe-inline' to default-src
-        -->
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *; img-src 'self' data: content:;">
+        <!-- Meta information -->
+		<meta http-equiv="Content-Security-Policy" content="default-src 'self' * data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *; img-src 'self' data: content:;">
         <meta name="format-detection" content="telephone=no">
         <meta name="msapplication-tap-highlight" content="no">
-        <meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover">
-        <link rel="stylesheet" type="text/css" href="css/index.css">
-        <title>Hello World</title>
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+        
+        <!-- scripts,stylesheets and others -->
+		<title>MetaTTT</title>
+		<link rel="stylesheet" type="text/css" href="css/index.css">
+		<link rel="icon" href="img/icon.png">
     </head>
+	
     <body>
+		<div id="splash"></div>
+		
         <div class="app">
-            <h1>Apache Cordova</h1>
-            <div id="deviceready" class="blink">
-                <p class="event listening">Connecting to Device</p>
-                <p class="event received">Device is Ready</p>
-            </div>
+			<div id="gamePg" class="page">
+				<header>
+					<button class="btn" id="mbtn1"><img class="btnIcon" src="img/btn/settings.svg"/><br>Settings</button>
+					<button class="btn" id="mbtn2" disabled><img class="btnIcon" src="img/btn/share.svg"/><br>TBD</button>
+					<button class="btn" id="mbtn3"><img class="btnIcon" src="img/btn/credits.svg"/><br>Credits</button>
+					<button class="btn" id="mbtn4"><img class="btnIcon" src="img/btn/feedback.svg"/><br>Feedback</button>
+				</header>
+				<footer>
+					<button class="btn" id="mbtn5"><img class="btnIcon" src="img/btn/multiplayer.svg"/><br>Online</button>
+					<button class="btn" id="mbtn6" disabled><img class="btnIcon" src="img/btn/puzzle.svg"/><br>TBD</button>
+					<button class="btn" id="mbtn7" disabled><img class="btnIcon" src="img/btn/shop.svg"/><br>TBD</button>
+					<button class="btn" id="mbtn8"><img class="btnIcon" src="img/btn/replay.svg"/><br>Reset</button>
+				</footer>
+				<div class="TTTgame"></div>
+			</div>
+			<div id="settingsPg" class="page pgLeft">
+				<div class="backing">
+					<button class="btn backBtn"><img class="btnIcon" src="img/btn/back.svg"/><br>Back</button>
+					<div id="settingsCont" style = "margin:0 0 0 3vmin">
+						<h1>Game settings</h1>
+						<div style="margin-bottom:1.5vh">
+							<h3 style="display:inline;vertical-align:middle;">Grid Length:</h3>
+							<label class="checkCont">
+								<input type="radio" name="grid_len" value='3' checked></input>
+								<span class="checkbox"></span>3
+							</label>
+							<label class="checkCont">
+								<input type="radio" name="grid_len" value='4'></input>
+								<span class="checkbox"></span>4
+							</label>
+						</div>
+						<div style="margin-bottom:1.5vh">
+							<h3 style="display:inline;vertical-align:middle;">Number of Players:</h3>
+							<label class="checkCont">
+								<input type="radio" name="plyr_no" value='2' checked></input>
+								<span class="checkbox"></span>2
+							</label>
+							<label class="checkCont">
+								<input type="radio" name="plyr_no" value='3'></input>
+								<span class="checkbox"></span>3
+							</label>
+							<label class="checkCont">
+								<input type="radio" name="plyr_no" value='4'></input>
+								<span class="checkbox"></span>4
+							</label>
+						</div>
+						<div style="margin-bottom:1.5vh">
+							<h3 style="display:inline;vertical-align:middle;">Win Condition:</h3>
+							<label class="checkCont">
+								<input type="radio" name="win_req" value='3' checked></input>
+								<span class="checkbox"></span>3
+							</label>
+							<label class="checkCont">
+								<input type="radio" name="win_req" value='4'></input>
+								<span class="checkbox"></span>4
+							</label>
+						</div>
+						<h1>Configuration settings</h1>
+						<label>Server URL: <input type="text" placeholder="Server URL" name="client_url"></label></input><br>
+						<label>Online Name: <input type="text" placeholder="Online name" name="client_name"></label></input><br>
+						<label class="checkCont" style="padding-left:0;margin-left:0;">Performance Mode
+							<input type="checkbox" name="performance_mode"></input>
+							<span class="checkbox" style="left:initial;right:-5vw;"></span>
+						</label>
+					</div>
+					<footer>
+						<button class="btn" id="sbtn1"><img class="btnIcon" src="img/btn/save.svg"/><br>Save</button>
+					</footer>
+				</div>
+			</div>
+			<div id="onlinePg" class="page pgBtm">
+				<div class="sessionInfo">
+					<button class="btn mini"><img class="btnIcon" src="img/btn/play.svg"></button>
+					<img class="btnIcon mini" src="img/person.svg"><h2 class="sessInfo">000000</h2>
+				</div>
+				<div class="sessionInfo">
+					<button class="btn mini"><img class="btnIcon" src="img/btn/play.svg"></button>
+					<img class="btnIcon mini" src="img/person.svg"><h2 class="sessInfo">000000</h2>
+				</div>
+				<div class="sessionInfo">
+					<button class="btn mini"><img class="btnIcon" src="img/btn/play.svg"></button>
+					<img class="btnIcon mini" src="img/person.svg"><h2 class="sessInfo">000000</h2>
+				</div>
+				<div class="sessionInfo">
+					<button class="btn mini"><img class="btnIcon" src="img/btn/play.svg"></button>
+					<img class="btnIcon mini" src="img/person.svg"><h2 class="sessInfo">000000</h2>
+				</div>
+				<div class="sessionInfo">
+					<button class="btn mini"><img class="btnIcon" src="img/btn/play.svg"></button>
+					<img class="btnIcon mini" src="img/person.svg"><h2 class="sessInfo">000000</h2>
+				</div>
+				<div class="sessionInfo">
+					<button class="btn mini"><img class="btnIcon" src="img/btn/play.svg"></button>
+					<img class="btnIcon mini" src="img/person.svg"><h2 class="sessInfo">000000</h2>
+				</div>
+				<footer>
+					<button class="btn backBtn"><img class="btnIcon" src="img/btn/back.svg"/><br>Back</button>
+					<button class="btn" id="obtn2"><img class="btnIcon" src="img/btn/spectate.svg"/><br>Spectate</button>
+					<button class="btn" id="obtn3"><img class="btnIcon" src="img/btn/replay.svg"/><br>Refresh</button>
+					<button class="btn" id="obtn4"><img class="btnIcon" src="img/btn/play.svg"/><br>Quick Play</button>
+				</footer>
+			</div>
+			<div id="spectatePg" class="page pgBtm">
+				<div class="sessionInfo">
+					<button class="btn mini"><img class="btnIcon" src="img/btn/play.svg"></button>
+					<img class="btnIcon mini" src="img/person.svg"><h2 class="sessInfo">000000</h2>
+				</div>
+				<div class="sessionInfo">
+					<button class="btn mini"><img class="btnIcon" src="img/btn/play.svg"></button>
+					<img class="btnIcon mini" src="img/person.svg"><h2 class="sessInfo">000000</h2>
+				</div>
+				<div class="sessionInfo">
+					<button class="btn mini"><img class="btnIcon" src="img/btn/play.svg"></button>
+					<img class="btnIcon mini" src="img/person.svg"><h2 class="sessInfo">000000</h2>
+				</div>
+				<div class="sessionInfo">
+					<button class="btn mini"><img class="btnIcon" src="img/btn/play.svg"></button>
+					<img class="btnIcon mini" src="img/person.svg"><h2 class="sessInfo">000000</h2>
+				</div>
+				<div class="sessionInfo">
+					<button class="btn mini"><img class="btnIcon" src="img/btn/play.svg"></button>
+					<img class="btnIcon mini" src="img/person.svg"><h2 class="sessInfo">000000</h2>
+				</div>
+				<div class="sessionInfo">
+					<button class="btn mini"><img class="btnIcon" src="img/btn/play.svg"></button>
+					<img class="btnIcon mini" src="img/person.svg"><h2 class="sessInfo">000000</h2>
+				</div>
+				<footer>
+					<button class="btn backBtn"><img class="btnIcon" src="img/btn/back.svg"/><br>Back</button>
+					<button class="btn" id="sobtn2"><img class="btnIcon" src="img/btn/replay.svg"/><br>Refresh</button>
+				</footer>
+			</div>
+			<div id="onlineGamePg" class="page pgRight">
+				<header style="background-color:rgba(0,0,0,0.8);">
+					<h2 id="onlineGameHeader" style="color:white">Waiting...</h2>
+				</header>
+				<footer>
+					<button class="btn backBtn"><img class="btnIcon" src="img/btn/back.svg"/><br>Back</button>
+					<button class="btn" id="endSession"><img class="btnIcon" src="img/btn/quit.svg"/><br>Forfeit</button>
+				</footer>
+				<div class="TTTgame"></div>
+			</div>
+			<div id="creditsPg" class="page pgTop">
+				<div class="backing">
+					<button class="btn backBtn"><img class="btnIcon" src="img/btn/back.svg"/><br>Back</button>
+					<h2 style="text-align:center"><b>IsoGrid Room</b></h2>
+					<h3 style="text-align:center"> Composed by John-Henry</h3>
+					<h2 style="text-align:center"><b>Programming</b></h2>
+					<h3 style="text-align:center"> John-Henry</h3>
+					<h2 style="text-align:center"><b>Art Assets</b></h2>
+					<h3 style="text-align:center"> John-Henry + Material Design Icons</h3>
+					<h2><b>Rules</b></h2>
+					<h3><ul style="margin:0; padding:0 0 0 5vw;">
+						<li style="margin:0 0 1vh 0;">There are 9 TicTacToe boards in a 3x3 grid. The goal is to win 3 boards in a line.</li>
+						<li style="margin:0 0 1vh 0;">The player is limited to a board determined by the previous turn.</li>
+						<li style="margin:0 0 1vh 0;">The position of the placed piece corresponds to the board used in the next turn.</li>
+						<li style="margin:0 0 1vh 0;">The first player chooses the starting board.</li>
+						<li style="margin:0 0 1vh 0;">If the placed piece corresponds with a finished board, the next player is allowed to choose which board to use next.</li>
+					</ul></h3>
+					<h1 style="text-align:center">Thanks for playing! </h4>
+				</div>
+			</div>
         </div>
+		
+		<!-- Active Scripts (placed here to reduce load time)-->
         <script type="text/javascript" src="cordova.js"></script>
-        <script type="text/javascript" src="js/index.js"></script>
+		<audio id="bgMusic" autoplay preload="auto" loop src="mp3/IsoGrid Room.mp3"></audio>
+		<audio id="clkSnd" preload="auto" src="mp3/click.mp3"></audio>
+		<audio id="rstSnd" preload="auto" src="mp3/reset.mp3"></audio>
+		<audio id="snrSnd" preload="auto" src="mp3/snare.mp3"></audio>
+		<audio id="tadaSnd" preload="auto" src="mp3/tada.mp3"></audio>
+		<audio preload="auto" src="mp3/happy.mp3"></audio>
+		<div id="bg"></div>
+		<img src="img/weakInternet.svg" id="weakInternetIndicator"></img>
+		<img src="img/loading.svg" id="loadingIndicator"></img>
+		<script type="text/javascript" src="js/bundle.js"></script>
     </body>
 </html>

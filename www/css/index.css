@@ -16,6 +16,398 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/**************************
+ * APPLICATION STYLESHEET *
+ **************************/
+ 
+body{
+    font-family:'HelveticaNeue-Light', 'HelveticaNeue', Helvetica, Arial, sans-serif;
+    font-size:3vmin;
+    margin:0px;
+    padding:0px;
+	overflow:hidden;
+	appearance:none;
+	-webkit-appearance:none;
+}
+
+h1{
+	font-size:5vmin;	
+}
+
+h2{
+	font-size:4vmin;
+}
+
+h3{
+	font-size:3vmin;
+}
+
+h4{
+	font-size:2vmin;	
+}
+
+header{
+	position: absolute;
+	top:0;
+	left:0;
+	right:0;
+	padding:0;
+	margin:0;
+	text-align:center;	
+}
+
+footer{
+	position: absolute;
+	bottom:0;
+	left:0;
+	right:0;
+	padding:0;
+	margin:0;
+	text-align:center;
+}
+
+* {
+	pointer-events: auto;
+}
+
+input{
+	margin-bottom: 5vw;
+	font-size: 3.5vmin;
+}
+
+input[type="radio"]{
+	margin: 0 0 0 3vw;
+	vertical-align:middle;
+}
+
+input[type="checkbox"]{
+	vertical-align:middle;
+	margin: 0 0 0 2vw;
+}
+
+label{
+	vertical-align:middle;	
+	font-size:3.5vmin;
+}
+
+header{
+	pointer-events: none;
+}
+
+footer{
+	pointer-events: none;
+}
+
+#bg{
+	backface-visibility:hidden;
+	position:absolute;
+	display:flex;
+	z-index:-2;
+	top:0;
+	left:0;
+	bottom:0;
+	right:0;
+	height:100vh;
+	width:100vw;
+	max-height:100vh;
+	max-width:100vw;
+	overflow:hidden;
+	align-items:center;
+	background-color:#fab20b;
+}
+
+#splash{
+	position:absolute;
+	z-index:999;
+	top:0;
+	left:0;
+	bottom:0;
+	right:0;
+	height:100vh;
+	width:100vw;
+	background-color:black;
+}
+
+#weakInternetIndicator{
+	position:absolute;
+	top:0;
+	left:0;
+	bottom:0;
+	right:0;
+	margin:auto;
+	z-index:100;
+	background-color:rgba(0,0,0,0.7);
+	pointer-events:none;
+	height:30vmin;
+	width:30vmin;
+	opacity:0;
+	transition: opacity 0.2s;
+}
+
+#loadingIndicator{
+	position:absolute;
+	top:0;
+	left:0;
+	bottom:0;
+	right:0;
+	margin:auto;
+	z-index:100;
+	background-color:rgba(0,0,0,0.7);
+	pointer-events:none;
+	height:30vmin;
+	width:30vmin;
+	opacity:0;
+	transition: opacity 0.2s;
+}
+
+.disableTransition{
+	transition: none !important;
+}
+
+.checkbox{
+	position:absolute;
+	top:-0.1vmin;
+	left:0;
+	height:4vmin;
+	width:4vmin;
+	border-radius: 50%;
+	box-sizing:border-box;
+	border: 0.35vmin solid;
+	color:white;
+	background-color:grey;
+	transition: background-color 0.1s, color 0.1s;
+}
+
+label.checkCont {
+	position: relative;
+	padding-left:5vmin;
+	margin-left: 3vmin;
+}
+
+label.checkCont input{
+	position: absolute;
+	opacity: 0;
+	cursor: pointer;
+	height: 0;
+	width: 0;
+}
+
+input:checked ~ .checkbox{
+	color: #ff9900;
+	background-color:white;
+}
+
+.backing{
+	position:absolute;
+	top:0;
+	bottom:0;
+	left:0;
+	right:0;
+	margin:auto;
+	background-color: rgba(0,0,0,0.8);
+	color:white;
+	border-radius: 4vmin;
+	height:95vh;
+	width:95vw;
+}
+
+.page{
+	position:absolute;
+	pointer-events: none;
+	top: 0;
+	left: 0;
+	height:100vh;
+	width:100vw;
+	will-change: transform;
+	transition: transform 0.3s ease-in;
+}
+
+.pgLeft{
+	display:none;
+	top:0;
+	transform:translateX(-100vw);
+}
+
+.pgRight{
+	display:none;
+	top:0;
+	transform:translateX(100vw);
+}
+
+.pgTop{
+	display:none;
+	transform:translateY(-100vh);
+}
+
+.pgBtm{
+	display:none;
+	transform:translateY(100vh);
+}
+
+.pgFocus{
+	transform:none !important;
+}
+
+.TTTgame {
+	will-change: transform, opacity;
+	display: grid;
+	opacity: 1;
+	grid-gap: 0;
+	position: absolute;
+	width:90vmin;
+	height:90vmin;
+	top:0;
+	bottom:0;
+	left:0;
+	right:0;
+	margin:auto;
+	color:white;
+	border:medium solid;
+	box-shadow: 0px 0px 2vmin 0.5vmin;
+	transition: color 0.4s ease 0.05s;
+}
+
+.grid {
+	display: grid;
+	grid-gap: 0;
+	padding: 1%;
+	background-color:black;
+}
+
+.sqr {
+	height:100%;
+	width:100%;
+	padding:0;
+	background-color:white;
+	box-shadow: none;
+	margin:0;
+	border:thin solid black;
+	z-index:1;
+}
+
+.gridOly {
+	height:100%;
+	width:100%;
+	background-color:black;
+	pointer-events: none;
+	z-index:2;
+}
+
+.btn {
+	background-color:#ff9900;
+	margin:4vmin 3vmin 4vmin 3vmin;
+	padding:0;
+	border-radius:1.5vmin;
+	height:15vmin;
+	width:15vmin;
+	border:thin solid white;
+	font-size: 100%;
+	color:white;
+	text-align:center;
+}
+
+.btn:active {
+	box-shadow: 0px 0px 0.7vmin 0.4vmin #995c00 inset;
+}
+
+.btn:disabled{
+	background-color:#eeeeee;
+}
+
+.btn.mini {
+	margin:2vmin 1.5vmin 2vmin 1.5vmin;
+	border-radius:0.75vmin;
+	vertical-align:middle;
+	height:7vh;
+	width:7vh;
+	display:inline;
+}
+
+.btnIcon{
+	margin:0;
+	padding:0;
+	height:60%;
+	width:60%;
+	
+}
+
+.btnIcon.mini{
+	width:5vh;
+	vertical-align:middle;
+}
+
+*:focus {
+    outline: none;
+}
+
+.sessionInfo{
+	background-color:rgba(255,153,0,0.9);
+	margin: 2.5vh 1vw 2.5vh 1vw;
+	border-radius:0.75vmin;
+	height:10vh;
+	vertical-align:middle;
+	display:none;
+}
+
+.sessInfo{
+	display:inline;
+	vertical-align:middle;
+	color:white;
+	font-size:2vh;
+}
+
+@keyframes winBtn {
+	0% {
+		background-color:hsl(0,100%,50%);
+	}
+	20% {
+		background-color:hsl(72,100%,50%);
+	}
+	40% {
+		background-color:hsl(144,100%,50%);
+	}
+	60% {
+		background-color:hsl(216,100%,50%);
+	}
+	80% {
+		background-color:hsl(288,100%,50%);
+	}
+	100% {
+		background-color:hsl(360,100%,50%);
+	}
+}
+
+@keyframes winGlow {
+	0% {
+		color:hsl(0,100%,50%);
+	}
+	20% {
+		color:hsl(72,100%,50%);
+	}
+	40% {
+		color:hsl(144,100%,50%);
+	}
+	60% {
+		color:hsl(216,100%,50%);
+	}
+	80% {
+		color:hsl(288,100%,50%);
+	}
+	100% {
+		color:hsl(360,100%,50%);
+	}
+}
+
+@keyframes winSpin {
+	
+}
+
+
+/**************************
+ * STANDARD CONFIGURATION *
+ **************************/
+ 
 * {
     -webkit-tap-highlight-color: rgba(0,0,0,0); /* make transparent link selection, adjust last value opacity 0 to 1.0 */
 }
@@ -24,84 +416,16 @@ body {
     -webkit-touch-callout: none;                /* prevent callout to copy image, etc when tap to hold */
     -webkit-text-size-adjust: none;             /* prevent webkit from resizing text to fit */
     -webkit-user-select: none;                  /* prevent copy paste, to allow, change 'none' to 'text' */
-    background-color:#E4E4E4;
-    background-image:linear-gradient(top, #A7A7A7 0%, #E4E4E4 51%);
-    font-family: system-ui, -apple-system, -apple-system-font, 'Segoe UI', 'Roboto', sans-serif;
-    font-size:12px;
-    height:100vh;
-    margin:0px;
-    padding:0px;
-    /* Padding to avoid the "unsafe" areas behind notches in the screen */
-    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-right, 0px);
-    text-transform:uppercase;
-    width:100%;
 }
 
 /* Portrait layout (default) */
 .app {
-    background:url(../img/logo.png) no-repeat center top; /* 170px x 200px */
-    position:absolute;             /* position in the center of the screen */
-    left:50%;
-    top:50%;
-    height:50px;                   /* text area height */
-    width:225px;                   /* text area width */
-    text-align:center;
-    padding:180px 0px 0px 0px;     /* image height is 200px (bottom 20px are overlapped with text) */
-    margin:-115px 0px 0px -112px;  /* offset vertical: half of image height and text area height */
-                                   /* offset horizontal: half of text area width */
+
 }
 
 /* Landscape layout (with min-width) */
 @media screen and (min-aspect-ratio: 1/1) and (min-width:400px) {
     .app {
-        background-position:left center;
-        padding:75px 0px 75px 170px;  /* padding-top + padding-bottom + text area = image height */
-        margin:-90px 0px 0px -198px;  /* offset vertical: half of image height */
-                                      /* offset horizontal: half of image width and text area width */
+    
     }
-}
-
-h1 {
-    font-size:24px;
-    font-weight:normal;
-    margin:0px;
-    overflow:visible;
-    padding:0px;
-    text-align:center;
-}
-
-.event {
-    border-radius:4px;
-    -webkit-border-radius:4px;
-    color:#FFFFFF;
-    font-size:12px;
-    margin:0px 30px;
-    padding:2px 0px;
-}
-
-.event.listening {
-    background-color:#333333;
-    display:block;
-}
-
-.event.received {
-    background-color:#4B946A;
-    display:none;
-}
-
-@keyframes fade {
-    from { opacity: 1.0; }
-    50% { opacity: 0.4; }
-    to { opacity: 1.0; }
-}
- 
-@-webkit-keyframes fade {
-    from { opacity: 1.0; }
-    50% { opacity: 0.4; }
-    to { opacity: 1.0; }
-}
- 
-.blink {
-    animation:fade 3000ms infinite;
-    -webkit-animation:fade 3000ms infinite;
-}
+} 

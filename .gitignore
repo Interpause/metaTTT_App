@@ -102,3 +102,11 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Others
+.vscode
+platforms
+plugins
+jsconfig.json
+build.json
+metaTTT.keystore
