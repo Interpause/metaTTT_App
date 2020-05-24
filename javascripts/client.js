@@ -35,7 +35,14 @@ window.client = Object.assign(new EventEmitter(),{
                 console.log(msg);
             }
         }
-        return await once(this,enums.connect);
+        //"authentication"
+        await once(this,enums.connect);
+        this.sendServer(enums.connect,{
+            'pid':this.pid,
+            'passwd':this.passwd,
+            'name':this.name
+        });
+        return await once(this,enums.okay);
     },
     disconnect:function(e){
         this.online = false;
@@ -49,10 +56,7 @@ window.client = Object.assign(new EventEmitter(),{
         displayLoadingIndicator();
         this.ws.send({
             'event':event,
-            'data':data,
-            'pid':this.pid,
-            'passwd':this.passwd,
-            'name':this.name
+            'data':data
         });
     },
     updateState:async function(state){
