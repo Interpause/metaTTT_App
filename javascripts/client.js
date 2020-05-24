@@ -29,11 +29,16 @@ window.client = Object.assign(new EventEmitter(),{
         this.ws.onmessage = raw => {
             this.online = true;
             hideLoadingIndicator();
-            let msgs = JSON.parse(raw.data);
-            for(let msg in msgs){
+            let msg = JSON.parse(raw.data);
+            if(Array.isArray(msg)){
+                msg.forEach(event => {
+                    this.emit(event.event,event.data);
+                    console.log(event);
+                });
+            }else{
                 this.emit(msg.event,msg.data);
                 console.log(msg);
-            }
+            }      
         }
         //"authentication"
         await once(this,enums.connect);
