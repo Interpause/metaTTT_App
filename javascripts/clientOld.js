@@ -145,9 +145,9 @@ window.client = {
 		try{
 			let res = await fetch(this.url,req);
 			reqDone = true;
-			return await res.json();
+			return res.json();
 		}catch(e){
-			if(e.name == "AbortError" && this.cur_fetches.length > 0 && !isPoll) return await this.sendServer(data,tries-1,isPoll);
+			if(e.name == "AbortError" && this.cur_fetches.length > 0 && !isPoll) return this.sendServer(data,tries-1,isPoll);
 			throw e;
 		}
 	},

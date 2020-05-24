@@ -525,186 +525,166 @@ function functionBindPolyfill(context) {
 
 },{}],2:[function(require,module,exports){
 const enums = require("./common/utils/enums");
+const EventEmitter = require("events");
 
-window.client = {
+const once = (emitter,event) => new Promise(callback => emitter.once(event,() => callback()));
+
+window.client = Object.assign(new EventEmitter(),{
 	name:		"Guest",//Online name of client
 	cur_gid:	null,	//ID of current game session (regardless of spectating or playing)
 	pid:		null,	//Player ID, generated only once
 	passwd:		null,	//Player's device password, generated only once
-	unloaded:   false,  //Specifies that first state sent should be used to initialize.
-	online:		false,	//Flag for eventChecker to stop.
-	timeout:	5000,	//Timeout for fetch request including polls
-	tries:		3,		//Number of retries, not applicable for polls
-	//url:		"http://ec2-52-207-243-99.compute-1.amazonaws.com:8080",
-	url:		"http://127.0.0.1:8080",
-	cur_fetches:[],		//Current fetches in progress
-	reqConf: {			//The request
-		method:"POST",
-		mode:'cors',
-		cache:'no-store',
-		signal:undefined,
-		headers:{
-			'Content-Type':'application/json'
-		},
-		body:undefined
-	},
-	
-	getSavedSessions:async function(){
-		let data = await this.pingServer(enums.getSessions);
-		if(data == null) return;
-		genSessMenu(data[enums.sessionMenu],false);
-	},
-	
-	getSpecSessions:async function(){
-		let data = await this.pingServer(enums.getSpecSessions);
-		if(data == null) return;
-		genSessMenu(data[enums.spectatorMenu],true);
-	},
-	
-	findSession:async function(){
-		let data = await this.pingServer(enums.findSession);
-		if(data == null) return;
-		client.cur_gid = data[enums.findingSession];
-	},
-	
-	joinSession:async function(Gid){
-		if(Gid == null) Gid = client.cur_gid;
-		let data = await this.pingServer(enums.join,{gid:Gid});
-		if(data == null) return;
+    online:     false,
+    ws:         null,
+    //url:		"ws://127.0.0.1:8080",
+    url:		"ws://metattt-server.glitch.me",
 
-		client.online = true;
-		client.cur_gid = data.gid;
-		client.eventChecker();
-		//TODO: State == error, throw GUI error
-		let state = data[enums.onlineGame];
-		if(state == null){
-			//console.log("STATE NOT SENT");
-			client.unloaded = true;
-			return Promise.resolve();
-		}
-		if(state.player_ids.indexOf(client.pid) > -1) guiState.forfeitBtn.disabled = false;
-		else guiState.forfeitBtn.disabled = true;
-		return loadGame(state,true);
-	},
-	
-	quitSession: function(){
-		this.pingServer(enums.leave,{gid:this.cur_gid}).then(() => btnBack());
-	},
-	
-	eventLoops: 0, //To ensure that eventChecker isnt spamming.
-	eventChecker:async function(curLoop){
-		if(curLoop == null){
-			curLoop = client.eventLoops+1;
-			client.eventLoops = client.eventLoops+1;
-		}else if(curLoop != client.eventLoops) return;
-		//console.log(`LOOP ${curLoop}`);
-		try{
-			let data = await this.pingServer(enums.openPoll,{},true);
-			if(client.online){
-				client.eventChecker(curLoop);
-				if(data == null) return;				
-				if(data.gid != client.cur_gid) return;
-				if(!client.unloaded){
-					if(data[enums.onlineGame] != null) loadGame(data[enums.onlineGame],true);
-				}else{
-					loadGame(data[enums.onlineGame],true);
-					client.unloaded = false;
-				}
-			}
-		}catch(e){
-			console.log(e);
-			console.log("Refreshing long poll...");
-			if(client.online) client.eventChecker(curLoop);
-		};
-	},
-	
-	makeMove:async function(Move){
-		let data = await this.pingServer(enums.move,{gid:this.cur_gid,move:Move});
-		if(data[enums.onlineGame] == null) return;
-		loadGame(data[enums.onlineGame],true);
-	},
-	
-	/** Wrapper for sendServer that adds standard data, handles errors appropriately, and adds animation for the screen. */
-	pingServer:async function(command,others,isPoll){
-		isPoll = (isPoll==null)?false:isPoll;
-		if(!isPoll)displayLoadingIndicator();
-		
-		let data = (others==null)?{}:others;
-		data.cmd = command;
-		data.pid = this.pid;
-		data.passwd = this.passwd;
-		data.name = this.name;
-		
-		//TODO sendHist and sendEvent
-		try{
-			let reply = await this.sendServer(data,this.tries,isPoll);
-			console.log(reply);
-			if(!isPoll) hideLoadingIndicator();
-			//if(reply[enums.eventReceived] != null) //TODO event manager
-			return reply;
-		}catch(e){
-			if(!isPoll) hideLoadingIndicator();
-			if(e.name != "AbortError"){
-				weakInternetAnim();
-				console.log(e);
-			}
-			return {};
-		}
-	},
+    connect_ws:function(){
+        return new Promise((resolve,reject) => {
+            let sock = new WebSocket(client.url);
+            sock.onopen = () => resolve(sock);
+            sock.onerror = e => reject(e);
+        });
+    },
 
-	/** Recursive retry based server sending. While accounting for abortion by menu change instead of timeout. */
-	sendServer: async function(data,tries,isPoll){
-		if(tries <= 0) throw new Error(enums.error);
-		
-		let req = Object.assign({},this.reqConf);
-		req.body = JSON.stringify(data);
-		
-		let controller = new AbortController();
-		req.signal = controller.signal;
-		this.cur_fetches.push(controller);
-		
-		let reqDone = false;
-		wait(this.timeout).then(() => {
-			if(reqDone) return;
-			controller.abort();
-		});
-		try{
-			let res = await fetch(this.url,req);
-			reqDone = true;
-			return await res.json();
-		}catch(e){
-			if(e.name == "AbortError" && this.cur_fetches.length > 0 && !isPoll) return await this.sendServer(data,tries-1,isPoll);
-			throw e;
-		}
-	},
-	
-	/** Cancels all current fetches. */
-	cancelAll: function(){
-		this.online = false;
-		let cancels = this.cur_fetches;
-		this.cur_fetches = []; //necessary condition to stop retries.
-		for(let cont of cancels){
-			cont.abort();
-		}
-	}
-}
-},{"./common/utils/enums":5}],3:[function(require,module,exports){
+    connect:async function(){
+        if(client.ws && client.ws.readyState == 1) return;
+        client.online = false;
+        
+        console.log("connecting...");
+        displayLoadingIndicator();
+        try{
+            client.ws = await client.connect_ws();
+        }catch(e){
+            hideLoadingIndicator();
+            weakInternetAnim();
+            console.error(e);
+            throw e;
+        }
+
+        client.ws.onerror = e => {
+            if(client.ws.readyState == 3){
+                hideLoadingIndicator();
+                weakInternetAnim();
+            }
+            console.error(e);
+        }
+        client.ws.onclose = e =>{
+            if(client.online){ //disconnect(): client.online = false, wont retry. closeEvent: client.online still true, retries.
+                weakInternetAnim();
+                console.log(e);
+                console.log("reconnecting...");
+                client.connect();
+            }
+        }
+        client.ws.onmessage = raw => {
+            client.online = true;
+            let msg = JSON.parse(raw.data);
+            if(Array.isArray(msg)){
+                msg.forEach(event => {
+                    client.emit(event.event,event.data);
+                    console.log(event);
+                });
+            }else{
+                client.emit(msg.event,msg.data);
+                console.log(msg);
+            }      
+        }
+        //"authentication"
+        await once(client,enums.connect);
+        client.sendServer(enums.connect,{
+            'pid':client.pid,
+            'passwd':client.passwd,
+            'name':client.name
+        });
+        return once(client,enums.okay);
+    },
+    disconnect:function(e){
+        client.online = false;
+        console.log("disconnected existing socket");
+        if(client.ws == null) return;
+        client.ws.close();
+        client.ws = null;
+        hideLoadingIndicator();
+    },
+    sendServer:async function(event,data){
+        await client.connect();
+        client.ws.send(JSON.stringify({
+            'event':event,
+            'data':data
+        }));
+    },
+    updateState:async function(state){
+        if(state == null) throw new Error(`${enums.null}: Null state`);
+        if(state == enums.error) throw new Error(`${enums.error}: error state received`);
+        client.cur_gid = state.gid;
+        //TODO: not elegant
+        if(state.player_ids.indexOf(client.pid) > -1) guiState.forfeitBtn.disabled = false; 
+        else guiState.forfeitBtn.disabled = true;
+        return loadGame(state,true);
+    },
+    getSavedSessions:async function(){
+        displayLoadingIndicator();
+        client.sendServer(enums.getSessions);
+        await once(client,enums.getSessions);
+        hideLoadingIndicator();
+    },
+    getSpecSessions:async function(){
+        displayLoadingIndicator();
+        client.sendServer(enums.getSpecSessions);
+        await once(client,enums.getSpecSessions);
+        hideLoadingIndicator();
+    },
+    findSession:async function(){
+        displayLoadingIndicator();
+        client.sendServer(enums.findSession);
+        await once(client,enums.findSession);
+        hideLoadingIndicator();
+    },
+    joinSession:async function(gid){
+        displayLoadingIndicator();
+        if(gid == null) gid = client.cur_gid;
+        let state = {};
+        client.sendServer(enums.join,{'gid':gid});
+        client.once(enums.join,data => state = data);
+        await once(client,enums.join);
+        await once(client,enums.updateState);
+        hideLoadingIndicator();
+    },
+    quitSession:async function(){
+        client.sendServer(enums.leave,{'gid':client.cur_gid});
+        btnBack();
+        return once(client,enums.leave);
+    },
+    makeMove:async function(move){
+        displayLoadingIndicator();
+        client.sendServer(enums.move,{'gid':client.cur_gid,'move':move});
+        await once(client,enums.move);
+        hideLoadingIndicator();
+    }
+});
+
+client.on(enums.getSessions,data => genSessMenu(data,false));
+client.on(enums.getSpecSessions,data => genSessMenu(data,true));
+client.on(enums.findSession,data => client.cur_gid = data);
+client.on(enums.updateState,client.updateState);
+},{"./common/utils/enums":5,"events":1}],3:[function(require,module,exports){
 const enums = require("../utils/enums");
 const gconf = require("../utils/game_config");
 
 module.exports = class State {
-	config 			= gconf;//Default game config
-	history 		= []; 	//history of state
-	player_ids 		= []; 	//player ids
-	grid 			= {}; 	//placement data
-	turns 			= 0; 	//turns passed
-	winner 			= null; //winner id, -1 if draw
-	cur_board 		= null; //current board in play, null means all boards in play
-	cur_player_ind 	= 0; 	//index of current player in player_ids
 	get cur_player() {return this.player_ids[this.cur_player_ind];}
 
 	//if from_json=true, reconstructs State object from js object.
 	constructor(obj,from_json){
+		this.config 		= gconf;//Default game config
+		this.history 		= []; 	//history of state
+		this.player_ids 	= []; 	//player ids
+		this.grid 			= {}; 	//placement data
+		this.turns 			= 0; 	//turns passed
+		this.winner 		= null; //winner id, -1 if draw
+		this.cur_board 		= null; //current board in play, null means all boards in play
+		this.cur_player_ind = 0; 	//index of current player in player_ids
 		if(from_json){
 			this.config = obj.config;
 			this.history = obj.history;
@@ -811,20 +791,22 @@ const gameState = require("../classes/gameState");
 const EventEmitter = require('events');
 
 module.exports = class Session extends EventEmitter {
-	state	  		= {};		//The session's gameState.
-	isStarted 		= false;	//Whether the game has started. Used in server.
-	num_players	  	= 0;		//Number of players currently.
-	max_players		= 0;		//Max number of players as specified in game config.
-	num_spectators 	= 0;		//Number of spectators. Actually unlimited.
-	gconfig   		= gconf;	//Game config. Local default found in session.js.
-	online	  		= false;	//Whether the game is online. Determined by gui presence.
-	gui		  		= null;		//If present in init, online is true.
-	player_ids	  	= [];		//Player's PIDs for checking.
-	spectators	  	= [];		//Spectator's PIDs for checking.
 
 	//Creates the session. If gui is present, starts in local mode. Else server session mode.
 	constructor(gui){
 		super();
+
+		this.state			= {};		//The session's gameState.
+		this.isStarted		= false;	//Whether the game has started. Used in server.
+		this.num_players	= 0;		//Number of players currently.
+		this.max_players	= 0;		//Max number of players as specified in game config.
+		this.num_spectators	= 0;		//Number of spectators. Actually unlimited.
+		this.gconfig		= gconf;	//Game config. Local default found in session.js.
+		this.online			= false;	//Whether the game is online. Determined by gui presence.
+		this.gui			= null;		//If present in init, online is true.
+		this.player_ids		= [];		//Player's PIDs for checking.
+		this.spectators		= [];		//Spectator's PIDs for checking.
+		
 		this.gui = gui;
 		this.online = (gui==null);
 	}
@@ -915,23 +897,19 @@ module.exports.unfound = "NOT FOUND LOL";
 //General
 module.exports.okay = "OKAY";
 module.exports.error = "FAIL";
+module.exports.null = "NullPointerException";
 module.exports.info = "INFO";
 module.exports.busy = "BUSY";
-//Server commands
+//Server<-->Client events
 module.exports.getSessions = "GET SESSIONS";
 module.exports.getSpecSessions = "GET SPEC SESSIONS";
 module.exports.createSession = "MAKE ME A GAME";
 module.exports.findSession = "FIND ME A GAME";
-module.exports.openPoll = "LONG POLLING";
+module.exports.updateState = "STATE UPDATE";
 module.exports.join = "JOIN";
 module.exports.leave = "LEAVE";
-//Client states
-module.exports.sessionMenu = "SESSION MENU";
-module.exports.spectatorMenu = "SPEC SESSION MENU";
-module.exports.creatingSession = "CREATING SESSION";
-module.exports.findingSession = "FINDING SESSION";
-module.exports.onlineGame = "ONLINE GAME";
-module.exports.eventReceived = "EVENT RECEIVED";
+module.exports.disconnect = "DISCONNECTING";
+module.exports.connect = "HELLO";
 },{}],6:[function(require,module,exports){
 module.exports = {
     grid_len:3,
@@ -946,6 +924,15 @@ module.exports = {
     }
 };
 },{}],7:[function(require,module,exports){
+(function (global){
+try{g = window}
+catch(e){}
+try{g = global}
+catch(e){}
+g.gen_uuid = c => ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+g.wait = ms => new Promise((r, j)=>setTimeout(r, ms));
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],8:[function(require,module,exports){
 const gameState = require("./common/classes/gameState");
 const enums = require("./common/utils/enums");
  
@@ -1132,13 +1119,11 @@ window.gui = {
 		gui.isProc = false;
 	}
 }	
-},{"./common/classes/gameState":3,"./common/utils/enums":5}],8:[function(require,module,exports){
+},{"./common/classes/gameState":3,"./common/utils/enums":5}],9:[function(require,module,exports){
 const Session = require("./common/classes/session");
 const gameState = require("./common/classes/gameState");
 window.gconf = require("./common/utils/game_config");
- 
-window.gen_uuid = c => ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
-window.wait = ms => new Promise((r, j)=>setTimeout(r, ms));
+require("./common/utils/utils");
 
 window.game = null;
 window.startLocalGame = async function(){
@@ -1156,7 +1141,7 @@ window.loadGame = async function(statedata,isOnline){
 	await gui.init(guiConfig,statedata.config,isOnline);
 	if(isOnline){
 		let state = new gameState(statedata,true);
-		state.names = statedata.names; //TODO: this is a temporary fix... .names in the first place was a temporary fix till pid retrieval worked properly
+		state.names = statedata.names; //TODO: PID based retrieval
 		gui.receivePlayersInfo(state.player_ids);
 		gui.receiveBoard(state);
 	}else{
@@ -1242,7 +1227,7 @@ window.app = {
 };
 
 app.initialize();
-},{"./common/classes/gameState":3,"./common/classes/session":4,"./common/utils/game_config":6}],9:[function(require,module,exports){
+},{"./common/classes/gameState":3,"./common/classes/session":4,"./common/utils/game_config":6,"./common/utils/utils":7}],10:[function(require,module,exports){
 const bgGen = require("./triangle_background");
 const enums = require("./common/utils/enums");
 const filter = new (require("bad-words"))();
@@ -1277,7 +1262,7 @@ window.guiState = {
 };
 
 //Functions to be called when focus is switching to the page.
-guiState.gamePg.arrive = async () => client.cancelAll();
+guiState.gamePg.arrive = async () => client.disconnect();
 guiState.settingsPg.arrive = async () => {
 	let rconfig = window.localStorage.getItem("settings");
 	if(rconfig != null){
@@ -1289,10 +1274,7 @@ guiState.settingsPg.arrive = async () => {
 	}
 },
 guiState.creditsPg.arrive = async () => {};
-guiState.onlinePg.arrive = async () => {
-	client.onlineState = enums.sessionMenu;
-	client.getSavedSessions();
-};
+guiState.onlinePg.arrive = async () => client.connect().then(client.getSavedSessions);
 guiState.onlineGamePg.arrive = async () => onlineGrid();
 guiState.spectatePg.arrive = async () => client.getSpecSessions();
 
@@ -1325,9 +1307,15 @@ window.switchPg = async function(page){
 	if(guiState.pgTransitionInProg) throw new Error(enums.busy);
 	guiState.pgTransitionInProg = true;
 
-	await changeFocus(page);
+	try{
+		await changeFocus(page);
+	}catch(e){
+		guiState.pgTransitionInProg = false;
+		throw e;
+	}
+
 	page.style.setProperty("display","block");
-	await wait(70); //Safest minimum time for display block to not cancel transitions.	
+	await wait(70); //Safest minimum time for display block to not cancel transitions.
 
 	let curPg = guiState.backSeq[guiState.backSeq.length-1];
 	if(guiState.backSeq.length > 1) curPg.classList.remove("pgFocus");
@@ -1357,7 +1345,13 @@ window.btnBack = async function(){
 	let curPg = guiState.backSeq[guiState.backSeq.length-1];
 	let prevPg = guiState.backSeq[guiState.backSeq.length-2];
 
-	await changeFocus(prevPg);
+	try{
+		await changeFocus(prevPg);
+	}catch(e){
+		guiState.pgTransitionInProg = false;
+		throw e;
+	}
+
 	prevPg.style.setProperty("display","block");
 	await wait(70); //Safest minimum time for display block to not cancel transitions.
 
@@ -1491,7 +1485,7 @@ window.hideGrid = async function(){
 	guiConfig.cont.style.setProperty("transform","rotate(-1440deg)");
 	guiConfig.cont.style.setProperty("opacity","0");
 	
-	return await wait(400); //400ms length of opacity transition
+	return wait(400); //400ms length of opacity transition
 }
 
 //Animates the reappearance of the grid
@@ -1523,7 +1517,7 @@ window.onlineGrid = async function(){
 	guiState.header.innerHTML = "Waiting...";
 	let conc = [hideGrid(),client.joinSession()];
 	await Promise.all(conc);
-	return await showGrid();
+	return showGrid();
 }
 
 //Update online GUI header
@@ -1532,7 +1526,7 @@ window.updateHeader = function(){
 	if(gui.state.player_ids.length < gui.state.config.num_players) guiState.header.innerHTML = "Waiting...";
 	else{
 		if(gui.state.cur_player == client.pid) guiState.header.innerHTML = `Your Turn @ ${gui.state.turns} moves`;
-		else guiState.header.innerHTML = gui.state.names[gui.state.cur_player_ind] + `'s Turn @ ${gui.state.turns} moves`; //TODO: state isnt supposed to have names
+		else guiState.header.innerHTML = gui.state.names[gui.state.cur_player_ind] + `'s Turn @ ${gui.state.turns} moves`;
 	}
 }
 
@@ -1576,7 +1570,7 @@ window.generateBg = function(){
 	*/
 	document.querySelector("#bg").appendChild(bg);
 }
-},{"./common/utils/enums":5,"./triangle_background":10,"bad-words":11}],10:[function(require,module,exports){
+},{"./common/utils/enums":5,"./triangle_background":11,"bad-words":12}],11:[function(require,module,exports){
 /** Default settings for the generated background. */
 const bgDefaults = {};
 
@@ -1748,7 +1742,7 @@ module.exports.genBg = function(kwargs){
 	}
 	return container;
 };
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 const localList = require('./lang.json').words;
 const baseList = require('badwords-list').array;
 
@@ -1835,7 +1829,7 @@ class Filter {
 }
 
 module.exports = Filter;
-},{"./lang.json":12,"badwords-list":14}],12:[function(require,module,exports){
+},{"./lang.json":13,"badwords-list":15}],13:[function(require,module,exports){
 module.exports={
   "words":[
     "ahole",
@@ -2294,16 +2288,16 @@ module.exports={
   ]
 }
 
-},{}],13:[function(require,module,exports){
-module.exports = ["4r5e", "5h1t", "5hit", "a55", "anal", "anus", "ar5e", "arrse", "arse", "ass", "ass-fucker", "asses", "assfucker", "assfukka", "asshole", "assholes", "asswhole", "a_s_s", "b!tch", "b00bs", "b17ch", "b1tch", "ballbag", "balls", "ballsack", "bastard", "beastial", "beastiality", "bellend", "bestial", "bestiality", "bi+ch", "biatch", "bitch", "bitcher", "bitchers", "bitches", "bitchin", "bitching", "bloody", "blow job", "blowjob", "blowjobs", "boiolas", "bollock", "bollok", "boner", "boob", "boobs", "booobs", "boooobs", "booooobs", "booooooobs", "breasts", "buceta", "bugger", "bum", "bunny fucker", "butt", "butthole", "buttmuch", "buttplug", "c0ck", "c0cksucker", "carpet muncher", "cawk", "chink", "cipa", "cl1t", "clit", "clitoris", "clits", "cnut", "cock", "cock-sucker", "cockface", "cockhead", "cockmunch", "cockmuncher", "cocks", "cocksuck", "cocksucked", "cocksucker", "cocksucking", "cocksucks", "cocksuka", "cocksukka", "cok", "cokmuncher", "coksucka", "coon", "cox", "crap", "cum", "cummer", "cumming", "cums", "cumshot", "cunilingus", "cunillingus", "cunnilingus", "cunt", "cuntlick", "cuntlicker", "cuntlicking", "cunts", "cyalis", "cyberfuc", "cyberfuck", "cyberfucked", "cyberfucker", "cyberfuckers", "cyberfucking", "d1ck", "damn", "dick", "dickhead", "dildo", "dildos", "dink", "dinks", "dirsa", "dlck", "dog-fucker", "doggin", "dogging", "donkeyribber", "doosh", "duche", "dyke", "ejaculate", "ejaculated", "ejaculates", "ejaculating", "ejaculatings", "ejaculation", "ejakulate", "f u c k", "f u c k e r", "f4nny", "fag", "fagging", "faggitt", "faggot", "faggs", "fagot", "fagots", "fags", "fanny", "fannyflaps", "fannyfucker", "fanyy", "fatass", "fcuk", "fcuker", "fcuking", "feck", "fecker", "felching", "fellate", "fellatio", "fingerfuck", "fingerfucked", "fingerfucker", "fingerfuckers", "fingerfucking", "fingerfucks", "fistfuck", "fistfucked", "fistfucker", "fistfuckers", "fistfucking", "fistfuckings", "fistfucks", "flange", "fook", "fooker", "fuck", "fucka", "fucked", "fucker", "fuckers", "fuckhead", "fuckheads", "fuckin", "fucking", "fuckings", "fuckingshitmotherfucker", "fuckme", "fucks", "fuckwhit", "fuckwit", "fudge packer", "fudgepacker", "fuk", "fuker", "fukker", "fukkin", "fuks", "fukwhit", "fukwit", "fux", "fux0r", "f_u_c_k", "gangbang", "gangbanged", "gangbangs", "gaylord", "gaysex", "goatse", "God", "god-dam", "god-damned", "goddamn", "goddamned", "hardcoresex", "hell", "heshe", "hoar", "hoare", "hoer", "homo", "hore", "horniest", "horny", "hotsex", "jack-off", "jackoff", "jap", "jerk-off", "jism", "jiz", "jizm", "jizz", "kawk", "knob", "knobead", "knobed", "knobend", "knobhead", "knobjocky", "knobjokey", "kock", "kondum", "kondums", "kum", "kummer", "kumming", "kums", "kunilingus", "l3i+ch", "l3itch", "labia", "lust", "lusting", "m0f0", "m0fo", "m45terbate", "ma5terb8", "ma5terbate", "masochist", "master-bate", "masterb8", "masterbat*", "masterbat3", "masterbate", "masterbation", "masterbations", "masturbate", "mo-fo", "mof0", "mofo", "mothafuck", "mothafucka", "mothafuckas", "mothafuckaz", "mothafucked", "mothafucker", "mothafuckers", "mothafuckin", "mothafucking", "mothafuckings", "mothafucks", "mother fucker", "motherfuck", "motherfucked", "motherfucker", "motherfuckers", "motherfuckin", "motherfucking", "motherfuckings", "motherfuckka", "motherfucks", "muff", "mutha", "muthafecker", "muthafuckker", "muther", "mutherfucker", "n1gga", "n1gger", "nazi", "nigg3r", "nigg4h", "nigga", "niggah", "niggas", "niggaz", "nigger", "niggers", "nob", "nob jokey", "nobhead", "nobjocky", "nobjokey", "numbnuts", "nutsack", "orgasim", "orgasims", "orgasm", "orgasms", "p0rn", "pawn", "pecker", "penis", "penisfucker", "phonesex", "phuck", "phuk", "phuked", "phuking", "phukked", "phukking", "phuks", "phuq", "pigfucker", "pimpis", "piss", "pissed", "pisser", "pissers", "pisses", "pissflaps", "pissin", "pissing", "pissoff", "poop", "porn", "porno", "pornography", "pornos", "prick", "pricks", "pron", "pube", "pusse", "pussi", "pussies", "pussy", "pussys", "rectum", "retard", "rimjaw", "rimming", "s hit", "s.o.b.", "sadist", "schlong", "screwing", "scroat", "scrote", "scrotum", "semen", "sex", "sh!+", "sh!t", "sh1t", "shag", "shagger", "shaggin", "shagging", "shemale", "shi+", "shit", "shitdick", "shite", "shited", "shitey", "shitfuck", "shitfull", "shithead", "shiting", "shitings", "shits", "shitted", "shitter", "shitters", "shitting", "shittings", "shitty", "skank", "slut", "sluts", "smegma", "smut", "snatch", "son-of-a-bitch", "spac", "spunk", "s_h_i_t", "t1tt1e5", "t1tties", "teets", "teez", "testical", "testicle", "tit", "titfuck", "tits", "titt", "tittie5", "tittiefucker", "titties", "tittyfuck", "tittywank", "titwank", "tosser", "turd", "tw4t", "twat", "twathead", "twatty", "twunt", "twunter", "v14gra", "v1gra", "vagina", "viagra", "vulva", "w00se", "wang", "wank", "wanker", "wanky", "whoar", "whore", "willies", "willy", "xrated", "xxx"];
 },{}],14:[function(require,module,exports){
+module.exports = ["4r5e", "5h1t", "5hit", "a55", "anal", "anus", "ar5e", "arrse", "arse", "ass", "ass-fucker", "asses", "assfucker", "assfukka", "asshole", "assholes", "asswhole", "a_s_s", "b!tch", "b00bs", "b17ch", "b1tch", "ballbag", "balls", "ballsack", "bastard", "beastial", "beastiality", "bellend", "bestial", "bestiality", "bi+ch", "biatch", "bitch", "bitcher", "bitchers", "bitches", "bitchin", "bitching", "bloody", "blow job", "blowjob", "blowjobs", "boiolas", "bollock", "bollok", "boner", "boob", "boobs", "booobs", "boooobs", "booooobs", "booooooobs", "breasts", "buceta", "bugger", "bum", "bunny fucker", "butt", "butthole", "buttmuch", "buttplug", "c0ck", "c0cksucker", "carpet muncher", "cawk", "chink", "cipa", "cl1t", "clit", "clitoris", "clits", "cnut", "cock", "cock-sucker", "cockface", "cockhead", "cockmunch", "cockmuncher", "cocks", "cocksuck", "cocksucked", "cocksucker", "cocksucking", "cocksucks", "cocksuka", "cocksukka", "cok", "cokmuncher", "coksucka", "coon", "cox", "crap", "cum", "cummer", "cumming", "cums", "cumshot", "cunilingus", "cunillingus", "cunnilingus", "cunt", "cuntlick", "cuntlicker", "cuntlicking", "cunts", "cyalis", "cyberfuc", "cyberfuck", "cyberfucked", "cyberfucker", "cyberfuckers", "cyberfucking", "d1ck", "damn", "dick", "dickhead", "dildo", "dildos", "dink", "dinks", "dirsa", "dlck", "dog-fucker", "doggin", "dogging", "donkeyribber", "doosh", "duche", "dyke", "ejaculate", "ejaculated", "ejaculates", "ejaculating", "ejaculatings", "ejaculation", "ejakulate", "f u c k", "f u c k e r", "f4nny", "fag", "fagging", "faggitt", "faggot", "faggs", "fagot", "fagots", "fags", "fanny", "fannyflaps", "fannyfucker", "fanyy", "fatass", "fcuk", "fcuker", "fcuking", "feck", "fecker", "felching", "fellate", "fellatio", "fingerfuck", "fingerfucked", "fingerfucker", "fingerfuckers", "fingerfucking", "fingerfucks", "fistfuck", "fistfucked", "fistfucker", "fistfuckers", "fistfucking", "fistfuckings", "fistfucks", "flange", "fook", "fooker", "fuck", "fucka", "fucked", "fucker", "fuckers", "fuckhead", "fuckheads", "fuckin", "fucking", "fuckings", "fuckingshitmotherfucker", "fuckme", "fucks", "fuckwhit", "fuckwit", "fudge packer", "fudgepacker", "fuk", "fuker", "fukker", "fukkin", "fuks", "fukwhit", "fukwit", "fux", "fux0r", "f_u_c_k", "gangbang", "gangbanged", "gangbangs", "gaylord", "gaysex", "goatse", "God", "god-dam", "god-damned", "goddamn", "goddamned", "hardcoresex", "hell", "heshe", "hoar", "hoare", "hoer", "homo", "hore", "horniest", "horny", "hotsex", "jack-off", "jackoff", "jap", "jerk-off", "jism", "jiz", "jizm", "jizz", "kawk", "knob", "knobead", "knobed", "knobend", "knobhead", "knobjocky", "knobjokey", "kock", "kondum", "kondums", "kum", "kummer", "kumming", "kums", "kunilingus", "l3i+ch", "l3itch", "labia", "lust", "lusting", "m0f0", "m0fo", "m45terbate", "ma5terb8", "ma5terbate", "masochist", "master-bate", "masterb8", "masterbat*", "masterbat3", "masterbate", "masterbation", "masterbations", "masturbate", "mo-fo", "mof0", "mofo", "mothafuck", "mothafucka", "mothafuckas", "mothafuckaz", "mothafucked", "mothafucker", "mothafuckers", "mothafuckin", "mothafucking", "mothafuckings", "mothafucks", "mother fucker", "motherfuck", "motherfucked", "motherfucker", "motherfuckers", "motherfuckin", "motherfucking", "motherfuckings", "motherfuckka", "motherfucks", "muff", "mutha", "muthafecker", "muthafuckker", "muther", "mutherfucker", "n1gga", "n1gger", "nazi", "nigg3r", "nigg4h", "nigga", "niggah", "niggas", "niggaz", "nigger", "niggers", "nob", "nob jokey", "nobhead", "nobjocky", "nobjokey", "numbnuts", "nutsack", "orgasim", "orgasims", "orgasm", "orgasms", "p0rn", "pawn", "pecker", "penis", "penisfucker", "phonesex", "phuck", "phuk", "phuked", "phuking", "phukked", "phukking", "phuks", "phuq", "pigfucker", "pimpis", "piss", "pissed", "pisser", "pissers", "pisses", "pissflaps", "pissin", "pissing", "pissoff", "poop", "porn", "porno", "pornography", "pornos", "prick", "pricks", "pron", "pube", "pusse", "pussi", "pussies", "pussy", "pussys", "rectum", "retard", "rimjaw", "rimming", "s hit", "s.o.b.", "sadist", "schlong", "screwing", "scroat", "scrote", "scrotum", "semen", "sex", "sh!+", "sh!t", "sh1t", "shag", "shagger", "shaggin", "shagging", "shemale", "shi+", "shit", "shitdick", "shite", "shited", "shitey", "shitfuck", "shitfull", "shithead", "shiting", "shitings", "shits", "shitted", "shitter", "shitters", "shitting", "shittings", "shitty", "skank", "slut", "sluts", "smegma", "smut", "snatch", "son-of-a-bitch", "spac", "spunk", "s_h_i_t", "t1tt1e5", "t1tties", "teets", "teez", "testical", "testicle", "tit", "titfuck", "tits", "titt", "tittie5", "tittiefucker", "titties", "tittyfuck", "tittywank", "titwank", "tosser", "turd", "tw4t", "twat", "twathead", "twatty", "twunt", "twunter", "v14gra", "v1gra", "vagina", "viagra", "vulva", "w00se", "wang", "wank", "wanker", "wanky", "whoar", "whore", "willies", "willy", "xrated", "xxx"];
+},{}],15:[function(require,module,exports){
 module.exports = {
   object: require('./object'),
   array: require('./array'),
   regex: require('./regexp')
 };
-},{"./array":13,"./object":15,"./regexp":16}],15:[function(require,module,exports){
+},{"./array":14,"./object":16,"./regexp":17}],16:[function(require,module,exports){
 module.exports = {"4r5e": 1, "5h1t": 1, "5hit": 1, "a55": 1, "anal": 1, "anus": 1, "ar5e": 1, "arrse": 1, "arse": 1, "ass": 1, "ass-fucker": 1, "asses": 1, "assfucker": 1, "assfukka": 1, "asshole": 1, "assholes": 1, "asswhole": 1, "a_s_s": 1, "b!tch": 1, "b00bs": 1, "b17ch": 1, "b1tch": 1, "ballbag": 1, "balls": 1, "ballsack": 1, "bastard": 1, "beastial": 1, "beastiality": 1, "bellend": 1, "bestial": 1, "bestiality": 1, "bi+ch": 1, "biatch": 1, "bitch": 1, "bitcher": 1, "bitchers": 1, "bitches": 1, "bitchin": 1, "bitching": 1, "bloody": 1, "blow job": 1, "blowjob": 1, "blowjobs": 1, "boiolas": 1, "bollock": 1, "bollok": 1, "boner": 1, "boob": 1, "boobs": 1, "booobs": 1, "boooobs": 1, "booooobs": 1, "booooooobs": 1, "breasts": 1, "buceta": 1, "bugger": 1, "bum": 1, "bunny fucker": 1, "butt": 1, "butthole": 1, "buttmuch": 1, "buttplug": 1, "c0ck": 1, "c0cksucker": 1, "carpet muncher": 1, "cawk": 1, "chink": 1, "cipa": 1, "cl1t": 1, "clit": 1, "clitoris": 1, "clits": 1, "cnut": 1, "cock": 1, "cock-sucker": 1, "cockface": 1, "cockhead": 1, "cockmunch": 1, "cockmuncher": 1, "cocks": 1, "cocksuck": 1, "cocksucked": 1, "cocksucker": 1, "cocksucking": 1, "cocksucks": 1, "cocksuka": 1, "cocksukka": 1, "cok": 1, "cokmuncher": 1, "coksucka": 1, "coon": 1, "cox": 1, "crap": 1, "cum": 1, "cummer": 1, "cumming": 1, "cums": 1, "cumshot": 1, "cunilingus": 1, "cunillingus": 1, "cunnilingus": 1, "cunt": 1, "cuntlick": 1, "cuntlicker": 1, "cuntlicking": 1, "cunts": 1, "cyalis": 1, "cyberfuc": 1, "cyberfuck": 1, "cyberfucked": 1, "cyberfucker": 1, "cyberfuckers": 1, "cyberfucking": 1, "d1ck": 1, "damn": 1, "dick": 1, "dickhead": 1, "dildo": 1, "dildos": 1, "dink": 1, "dinks": 1, "dirsa": 1, "dlck": 1, "dog-fucker": 1, "doggin": 1, "dogging": 1, "donkeyribber": 1, "doosh": 1, "duche": 1, "dyke": 1, "ejaculate": 1, "ejaculated": 1, "ejaculates": 1, "ejaculating": 1, "ejaculatings": 1, "ejaculation": 1, "ejakulate": 1, "f u c k": 1, "f u c k e r": 1, "f4nny": 1, "fag": 1, "fagging": 1, "faggitt": 1, "faggot": 1, "faggs": 1, "fagot": 1, "fagots": 1, "fags": 1, "fanny": 1, "fannyflaps": 1, "fannyfucker": 1, "fanyy": 1, "fatass": 1, "fcuk": 1, "fcuker": 1, "fcuking": 1, "feck": 1, "fecker": 1, "felching": 1, "fellate": 1, "fellatio": 1, "fingerfuck": 1, "fingerfucked": 1, "fingerfucker": 1, "fingerfuckers": 1, "fingerfucking": 1, "fingerfucks": 1, "fistfuck": 1, "fistfucked": 1, "fistfucker": 1, "fistfuckers": 1, "fistfucking": 1, "fistfuckings": 1, "fistfucks": 1, "flange": 1, "fook": 1, "fooker": 1, "fuck": 1, "fucka": 1, "fucked": 1, "fucker": 1, "fuckers": 1, "fuckhead": 1, "fuckheads": 1, "fuckin": 1, "fucking": 1, "fuckings": 1, "fuckingshitmotherfucker": 1, "fuckme": 1, "fucks": 1, "fuckwhit": 1, "fuckwit": 1, "fudge packer": 1, "fudgepacker": 1, "fuk": 1, "fuker": 1, "fukker": 1, "fukkin": 1, "fuks": 1, "fukwhit": 1, "fukwit": 1, "fux": 1, "fux0r": 1, "f_u_c_k": 1, "gangbang": 1, "gangbanged": 1, "gangbangs": 1, "gaylord": 1, "gaysex": 1, "goatse": 1, "God": 1, "god-dam": 1, "god-damned": 1, "goddamn": 1, "goddamned": 1, "hardcoresex": 1, "hell": 1, "heshe": 1, "hoar": 1, "hoare": 1, "hoer": 1, "homo": 1, "hore": 1, "horniest": 1, "horny": 1, "hotsex": 1, "jack-off": 1, "jackoff": 1, "jap": 1, "jerk-off": 1, "jism": 1, "jiz": 1, "jizm": 1, "jizz": 1, "kawk": 1, "knob": 1, "knobead": 1, "knobed": 1, "knobend": 1, "knobhead": 1, "knobjocky": 1, "knobjokey": 1, "kock": 1, "kondum": 1, "kondums": 1, "kum": 1, "kummer": 1, "kumming": 1, "kums": 1, "kunilingus": 1, "l3i+ch": 1, "l3itch": 1, "labia": 1, "lust": 1, "lusting": 1, "m0f0": 1, "m0fo": 1, "m45terbate": 1, "ma5terb8": 1, "ma5terbate": 1, "masochist": 1, "master-bate": 1, "masterb8": 1, "masterbat*": 1, "masterbat3": 1, "masterbate": 1, "masterbation": 1, "masterbations": 1, "masturbate": 1, "mo-fo": 1, "mof0": 1, "mofo": 1, "mothafuck": 1, "mothafucka": 1, "mothafuckas": 1, "mothafuckaz": 1, "mothafucked": 1, "mothafucker": 1, "mothafuckers": 1, "mothafuckin": 1, "mothafucking": 1, "mothafuckings": 1, "mothafucks": 1, "mother fucker": 1, "motherfuck": 1, "motherfucked": 1, "motherfucker": 1, "motherfuckers": 1, "motherfuckin": 1, "motherfucking": 1, "motherfuckings": 1, "motherfuckka": 1, "motherfucks": 1, "muff": 1, "mutha": 1, "muthafecker": 1, "muthafuckker": 1, "muther": 1, "mutherfucker": 1, "n1gga": 1, "n1gger": 1, "nazi": 1, "nigg3r": 1, "nigg4h": 1, "nigga": 1, "niggah": 1, "niggas": 1, "niggaz": 1, "nigger": 1, "niggers": 1, "nob": 1, "nob jokey": 1, "nobhead": 1, "nobjocky": 1, "nobjokey": 1, "numbnuts": 1, "nutsack": 1, "orgasim": 1, "orgasims": 1, "orgasm": 1, "orgasms": 1, "p0rn": 1, "pawn": 1, "pecker": 1, "penis": 1, "penisfucker": 1, "phonesex": 1, "phuck": 1, "phuk": 1, "phuked": 1, "phuking": 1, "phukked": 1, "phukking": 1, "phuks": 1, "phuq": 1, "pigfucker": 1, "pimpis": 1, "piss": 1, "pissed": 1, "pisser": 1, "pissers": 1, "pisses": 1, "pissflaps": 1, "pissin": 1, "pissing": 1, "pissoff": 1, "poop": 1, "porn": 1, "porno": 1, "pornography": 1, "pornos": 1, "prick": 1, "pricks": 1, "pron": 1, "pube": 1, "pusse": 1, "pussi": 1, "pussies": 1, "pussy": 1, "pussys": 1, "rectum": 1, "retard": 1, "rimjaw": 1, "rimming": 1, "s hit": 1, "s.o.b.": 1, "sadist": 1, "schlong": 1, "screwing": 1, "scroat": 1, "scrote": 1, "scrotum": 1, "semen": 1, "sex": 1, "sh!+": 1, "sh!t": 1, "sh1t": 1, "shag": 1, "shagger": 1, "shaggin": 1, "shagging": 1, "shemale": 1, "shi+": 1, "shit": 1, "shitdick": 1, "shite": 1, "shited": 1, "shitey": 1, "shitfuck": 1, "shitfull": 1, "shithead": 1, "shiting": 1, "shitings": 1, "shits": 1, "shitted": 1, "shitter": 1, "shitters": 1, "shitting": 1, "shittings": 1, "shitty": 1, "skank": 1, "slut": 1, "sluts": 1, "smegma": 1, "smut": 1, "snatch": 1, "son-of-a-bitch": 1, "spac": 1, "spunk": 1, "s_h_i_t": 1, "t1tt1e5": 1, "t1tties": 1, "teets": 1, "teez": 1, "testical": 1, "testicle": 1, "tit": 1, "titfuck": 1, "tits": 1, "titt": 1, "tittie5": 1, "tittiefucker": 1, "titties": 1, "tittyfuck": 1, "tittywank": 1, "titwank": 1, "tosser": 1, "turd": 1, "tw4t": 1, "twat": 1, "twathead": 1, "twatty": 1, "twunt": 1, "twunter": 1, "v14gra": 1, "v1gra": 1, "vagina": 1, "viagra": 1, "vulva": 1, "w00se": 1, "wang": 1, "wank": 1, "wanker": 1, "wanky": 1, "whoar": 1, "whore": 1, "willies": 1, "willy": 1, "xrated": 1, "xxx": 1};
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 module.exports = /\b(4r5e|5h1t|5hit|a55|anal|anus|ar5e|arrse|arse|ass|ass-fucker|asses|assfucker|assfukka|asshole|assholes|asswhole|a_s_s|b!tch|b00bs|b17ch|b1tch|ballbag|balls|ballsack|bastard|beastial|beastiality|bellend|bestial|bestiality|bi\+ch|biatch|bitch|bitcher|bitchers|bitches|bitchin|bitching|bloody|blow job|blowjob|blowjobs|boiolas|bollock|bollok|boner|boob|boobs|booobs|boooobs|booooobs|booooooobs|breasts|buceta|bugger|bum|bunny fucker|butt|butthole|buttmuch|buttplug|c0ck|c0cksucker|carpet muncher|cawk|chink|cipa|cl1t|clit|clitoris|clits|cnut|cock|cock-sucker|cockface|cockhead|cockmunch|cockmuncher|cocks|cocksuck|cocksucked|cocksucker|cocksucking|cocksucks|cocksuka|cocksukka|cok|cokmuncher|coksucka|coon|cox|crap|cum|cummer|cumming|cums|cumshot|cunilingus|cunillingus|cunnilingus|cunt|cuntlick|cuntlicker|cuntlicking|cunts|cyalis|cyberfuc|cyberfuck|cyberfucked|cyberfucker|cyberfuckers|cyberfucking|d1ck|damn|dick|dickhead|dildo|dildos|dink|dinks|dirsa|dlck|dog-fucker|doggin|dogging|donkeyribber|doosh|duche|dyke|ejaculate|ejaculated|ejaculates|ejaculating|ejaculatings|ejaculation|ejakulate|f u c k|f u c k e r|f4nny|fag|fagging|faggitt|faggot|faggs|fagot|fagots|fags|fanny|fannyflaps|fannyfucker|fanyy|fatass|fcuk|fcuker|fcuking|feck|fecker|felching|fellate|fellatio|fingerfuck|fingerfucked|fingerfucker|fingerfuckers|fingerfucking|fingerfucks|fistfuck|fistfucked|fistfucker|fistfuckers|fistfucking|fistfuckings|fistfucks|flange|fook|fooker|fuck|fucka|fucked|fucker|fuckers|fuckhead|fuckheads|fuckin|fucking|fuckings|fuckingshitmotherfucker|fuckme|fucks|fuckwhit|fuckwit|fudge packer|fudgepacker|fuk|fuker|fukker|fukkin|fuks|fukwhit|fukwit|fux|fux0r|f_u_c_k|gangbang|gangbanged|gangbangs|gaylord|gaysex|goatse|God|god-dam|god-damned|goddamn|goddamned|hardcoresex|hell|heshe|hoar|hoare|hoer|homo|hore|horniest|horny|hotsex|jack-off|jackoff|jap|jerk-off|jism|jiz|jizm|jizz|kawk|knob|knobead|knobed|knobend|knobhead|knobjocky|knobjokey|kock|kondum|kondums|kum|kummer|kumming|kums|kunilingus|l3i\+ch|l3itch|labia|lust|lusting|m0f0|m0fo|m45terbate|ma5terb8|ma5terbate|masochist|master-bate|masterb8|masterbat*|masterbat3|masterbate|masterbation|masterbations|masturbate|mo-fo|mof0|mofo|mothafuck|mothafucka|mothafuckas|mothafuckaz|mothafucked|mothafucker|mothafuckers|mothafuckin|mothafucking|mothafuckings|mothafucks|mother fucker|motherfuck|motherfucked|motherfucker|motherfuckers|motherfuckin|motherfucking|motherfuckings|motherfuckka|motherfucks|muff|mutha|muthafecker|muthafuckker|muther|mutherfucker|n1gga|n1gger|nazi|nigg3r|nigg4h|nigga|niggah|niggas|niggaz|nigger|niggers|nob|nob jokey|nobhead|nobjocky|nobjokey|numbnuts|nutsack|orgasim|orgasims|orgasm|orgasms|p0rn|pawn|pecker|penis|penisfucker|phonesex|phuck|phuk|phuked|phuking|phukked|phukking|phuks|phuq|pigfucker|pimpis|piss|pissed|pisser|pissers|pisses|pissflaps|pissin|pissing|pissoff|poop|porn|porno|pornography|pornos|prick|pricks|pron|pube|pusse|pussi|pussies|pussy|pussys|rectum|retard|rimjaw|rimming|s hit|s.o.b.|sadist|schlong|screwing|scroat|scrote|scrotum|semen|sex|sh!\+|sh!t|sh1t|shag|shagger|shaggin|shagging|shemale|shi\+|shit|shitdick|shite|shited|shitey|shitfuck|shitfull|shithead|shiting|shitings|shits|shitted|shitter|shitters|shitting|shittings|shitty|skank|slut|sluts|smegma|smut|snatch|son-of-a-bitch|spac|spunk|s_h_i_t|t1tt1e5|t1tties|teets|teez|testical|testicle|tit|titfuck|tits|titt|tittie5|tittiefucker|titties|tittyfuck|tittywank|titwank|tosser|turd|tw4t|twat|twathead|twatty|twunt|twunter|v14gra|v1gra|vagina|viagra|vulva|w00se|wang|wank|wanker|wanky|whoar|whore|willies|willy|xrated|xxx)\b/gi;
-},{}]},{},[8,9,7,2]);
+},{}]},{},[9,10,8,2]);

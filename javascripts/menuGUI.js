@@ -44,10 +44,7 @@ guiState.settingsPg.arrive = async () => {
 	}
 },
 guiState.creditsPg.arrive = async () => {};
-guiState.onlinePg.arrive = async () => {
-	await client.connect();
-	client.getSavedSessions();
-};
+guiState.onlinePg.arrive = async () => client.connect().then(client.getSavedSessions);
 guiState.onlineGamePg.arrive = async () => onlineGrid();
 guiState.spectatePg.arrive = async () => client.getSpecSessions();
 
@@ -84,7 +81,7 @@ window.switchPg = async function(page){
 		await changeFocus(page);
 	}catch(e){
 		guiState.pgTransitionInProg = false;
-		throw new Error(e);
+		throw e;
 	}
 
 	page.style.setProperty("display","block");
@@ -122,7 +119,7 @@ window.btnBack = async function(){
 		await changeFocus(prevPg);
 	}catch(e){
 		guiState.pgTransitionInProg = false;
-		throw new Error(e);
+		throw e;
 	}
 
 	prevPg.style.setProperty("display","block");
@@ -258,7 +255,7 @@ window.hideGrid = async function(){
 	guiConfig.cont.style.setProperty("transform","rotate(-1440deg)");
 	guiConfig.cont.style.setProperty("opacity","0");
 	
-	return await wait(400); //400ms length of opacity transition
+	return wait(400); //400ms length of opacity transition
 }
 
 //Animates the reappearance of the grid
@@ -290,7 +287,7 @@ window.onlineGrid = async function(){
 	guiState.header.innerHTML = "Waiting...";
 	let conc = [hideGrid(),client.joinSession()];
 	await Promise.all(conc);
-	return await showGrid();
+	return showGrid();
 }
 
 //Update online GUI header
