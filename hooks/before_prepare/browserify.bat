@@ -1,2 +1,2 @@
 cd javascripts
-browserify index.js menuGUI.js gameGUI.js client.js > ../www/js/bundle.js 
+browserify index.js menuGUI.js gameGUI.js client.js --plugin tinyify > ../www/js/bundle.js 

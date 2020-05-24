@@ -23,7 +23,6 @@ window.guiState = {
 	clickSnd:document.querySelector('#clkSnd'),
 	rstSnd:document.querySelector('#clkSnd'),
 	tadaSnd:document.querySelector('#tadaSnd'),
-	snrSnd:document.querySelector('#snrSnd'),
 
 	pgFocus:null,				//Set to gamePg in index via changeFocus()
 	backSeq:[gamePg], 	//Sequence of pages to return back through.
@@ -135,7 +134,7 @@ window.btnBack = async function(){
 		guiState.pgTransitionInProg = false;
 	},300); /* 0.3s was used for transition property in CSS. */
 }
-for(btn of document.querySelectorAll(".backBtn")) btn.addEventListener("click", () => btnBack());
+for(let btn of document.querySelectorAll(".backBtn")) btn.addEventListener("click", () => btnBack());
 
 /** Handler for buttons on gamePg. Somewhat obsolete but maybe user-initiated actions could have special animations?*/
 window.btnGamePg = function(which){

@@ -1,5 +1,6 @@
 const Session = require("./common/classes/session");
 const gameState = require("./common/classes/gameState");
+const enums = require("./common/utils/enums");
 window.gconf = require("./common/utils/game_config");
 require("./common/utils/utils");
 
@@ -91,7 +92,7 @@ window.app = {
 		//TODO tutorial done flag.
 		
 		let save = window.localStorage.getItem('save');
-		if(save==null) start = startLocalGame();
+		if(save==null) await startLocalGame();
 		else{
 			try{
 				await loadGame(JSON.parse(save),false);
@@ -103,5 +104,4 @@ window.app = {
 		document.querySelector("#splash").style.display = "none";
     }
 };
-
 app.initialize();

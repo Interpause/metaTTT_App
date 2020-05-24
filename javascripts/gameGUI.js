@@ -1,4 +1,3 @@
-const gameState = require("./common/classes/gameState");
 const enums = require("./common/utils/enums");
  
 /************************
@@ -92,7 +91,7 @@ window.gui = {
 	
 	/** Called by server to update local game on history of game. */
 	receiveHist:function(histList){
-		for(hist in histList) this.hist.push(hist);
+		for(let hist of histList) this.hist.push(hist);
 	},
 	
 	/** Used by server to ensure latest hists are sent. */
