@@ -110,3 +110,4 @@ plugins
 jsconfig.json
 build.json
 metaTTT.keystore
+.gitmodules
