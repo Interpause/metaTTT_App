@@ -1,0 +1,3 @@
+[submodule "javascripts/common"]
+	path = javascripts/common
+	url = https://github.com/Interpause/metaTTT_Common.git
