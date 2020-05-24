@@ -299,7 +299,7 @@ window.updateHeader = function(){
 	if(gui.state.player_ids.length < gui.state.config.num_players) guiState.header.innerHTML = "Waiting...";
 	else{
 		if(gui.state.cur_player == client.pid) guiState.header.innerHTML = `Your Turn @ ${gui.state.turns} moves`;
-		else guiState.header.innerHTML = gui.state.names[gui.state.cur_player_ind] + `'s Turn @ ${gui.state.turns} moves`; //TODO: state isnt supposed to have names
+		else guiState.header.innerHTML = gui.state.names[gui.state.cur_player_ind] + `'s Turn @ ${gui.state.turns} moves`;
 	}
 }
 

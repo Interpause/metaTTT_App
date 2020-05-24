@@ -1,9 +1,7 @@
 const Session = require("./common/classes/session");
 const gameState = require("./common/classes/gameState");
 window.gconf = require("./common/utils/game_config");
- 
-window.gen_uuid = c => ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
-window.wait = ms => new Promise((r, j)=>setTimeout(r, ms));
+require("./common/utils/utils");
 
 window.game = null;
 window.startLocalGame = async function(){
@@ -21,7 +19,7 @@ window.loadGame = async function(statedata,isOnline){
 	await gui.init(guiConfig,statedata.config,isOnline);
 	if(isOnline){
 		let state = new gameState(statedata,true);
-		state.names = statedata.names; //TODO: this is a temporary fix... .names in the first place was a temporary fix till pid retrieval worked properly
+		state.names = statedata.names; //TODO: PID based retrieval
 		gui.receivePlayersInfo(state.player_ids);
 		gui.receiveBoard(state);
 	}else{
