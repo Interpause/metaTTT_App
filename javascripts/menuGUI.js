@@ -3,44 +3,49 @@ const enums = require("./common/utils/enums");
 const filter = new (require("bad-words"))();
 
 /** Information about html for code. */
-window.guiState = {};
+window.guiState = {
+	//Get the pages from the document
+	gamePg:document.querySelector("#gamePg"),
+	settingsPg:document.querySelector("#settingsPg"),
+	creditsPg:document.querySelector("#creditsPg"),
+	onlinePg:document.querySelector("#onlinePg"),
+	onlineGamePg:document.querySelector("#onlineGamePg"),
+	spectatePg:document.querySelector("#spectatePg"),
 
-guiState.forfeitBtn = document.querySelector("#endSession");
-guiState.loadIndicator = document.querySelector("#loadingIndicator");
-guiState.noInternetIndicator = document.querySelector("#weakInternetIndicator");
+	sessBars:Array.from(onlinePg.querySelectorAll(".sessionInfo")),
+	specBars:Array.from(spectatePg.querySelectorAll(".sessionInfo")),
+	header:document.querySelector("#onlineGameHeader"),
 
-guiState.clickSnd = document.querySelector('#clkSnd');
-guiState.rstSnd = document.querySelector('#clkSnd');
-guiState.tadaSnd = document.querySelector('#tadaSnd');
-guiState.snrSnd = document.querySelector('#snrSnd');
+	forfeitBtn:document.querySelector("#endSession"),
+	loadIndicator:document.querySelector("#loadingIndicator"),
+	noInternetIndicator:document.querySelector("#weakInternetIndicator"),
 
-//Get the pages from the document
-guiState.gamePg = document.querySelector("#gamePg");
-guiState.settingsPg = document.querySelector("#settingsPg");
-guiState.creditsPg = document.querySelector("#creditsPg");
-guiState.onlinePg = document.querySelector("#onlinePg");
-guiState.onlineGamePg = document.querySelector("#onlineGamePg");
-guiState.spectatePg = document.querySelector("#spectatePg");
+	clickSnd:document.querySelector('#clkSnd'),
+	rstSnd:document.querySelector('#clkSnd'),
+	tadaSnd:document.querySelector('#tadaSnd'),
+	snrSnd:document.querySelector('#snrSnd'),
 
-guiState.pgFocus = null;				//Set to gamePg in index via changeFocus()
-guiState.backSeq = [guiState.gamePg]; 	//Sequence of pages to return back through.
-guiState.header = document.querySelector("#onlineGameHeader");
+	pgFocus:null,				//Set to gamePg in index via changeFocus()
+	backSeq:[gamePg], 	//Sequence of pages to return back through.
+	pgTransitionInProg:false,
+	btnReplayInProg:false
+};
 
 //Functions to be called when focus is switching to the page.
-guiState.gamePg.arrive = async () => client.cancelAll();
+guiState.gamePg.arrive = async () => client.disconnect();
 guiState.settingsPg.arrive = async () => {
 	let rconfig = window.localStorage.getItem("settings");
 	if(rconfig != null){
 		let config = JSON.parse(rconfig);
 		let settings = document.querySelector("#settingsCont");
-		//settings.querySelector("input[name='client_url']").value = config.client_url;
+		settings.querySelector("input[name='client_url']").value = config.client_url;
 		settings.querySelector("input[name='client_name']").value = config.client_name;
 		settings.querySelector("input[name='performance_mode']").checked = config.performance_mode;
 	}
-};
+},
 guiState.creditsPg.arrive = async () => {};
 guiState.onlinePg.arrive = async () => {
-	client.onlineState = enums.sessionMenu;
+	await client.connect();
 	client.getSavedSessions();
 };
 guiState.onlineGamePg.arrive = async () => onlineGrid();
@@ -54,6 +59,7 @@ guiState.onlinePg.leave = async () => {};
 guiState.onlineGamePg.leave = async () => {
 	if(gui.state.names != null && gui.state.names.length == 1) client.quitSession();
 	client.online = false;
+	client.cur_gid = null;
 	resetGrid();
 };
 guiState.spectatePg.leave = async () => {};
@@ -70,14 +76,19 @@ window.changeFocus = async function(page){
 }
 
 /** Function to switch pages and animate it based on the assigned class of the page. */
-guiState.pgTransitionInProg = false;
 window.switchPg = async function(page){
 	if(guiState.pgTransitionInProg) throw new Error(enums.busy);
 	guiState.pgTransitionInProg = true;
 
-	await changeFocus(page);
+	try{
+		await changeFocus(page);
+	}catch(e){
+		guiState.pgTransitionInProg = false;
+		throw new Error(e);
+	}
+
 	page.style.setProperty("display","block");
-	await wait(70); //Safest minimum time for display block to not cancel transitions.	
+	await wait(70); //Safest minimum time for display block to not cancel transitions.
 
 	let curPg = guiState.backSeq[guiState.backSeq.length-1];
 	if(guiState.backSeq.length > 1) curPg.classList.remove("pgFocus");
@@ -107,7 +118,13 @@ window.btnBack = async function(){
 	let curPg = guiState.backSeq[guiState.backSeq.length-1];
 	let prevPg = guiState.backSeq[guiState.backSeq.length-2];
 
-	await changeFocus(prevPg);
+	try{
+		await changeFocus(prevPg);
+	}catch(e){
+		guiState.pgTransitionInProg = false;
+		throw new Error(e);
+	}
+
 	prevPg.style.setProperty("display","block");
 	await wait(70); //Safest minimum time for display block to not cancel transitions.
 
@@ -182,7 +199,7 @@ window.saveSettings = function(){
 	}else if(!bg.hasChildNodes()) generateBg();
 	
 	let savedSettings = {
-		client_url:client.url,
+		client_url:url,
 		client_name:client.name,
 		performance_mode:chkbox.checked
 	};
@@ -206,8 +223,6 @@ document.querySelector("#obtn3").addEventListener("click",() => btnOnlinePg('ref
 document.querySelector("#obtn4").addEventListener("click",() => btnOnlinePg('quickPlay'));
 
 //Generates menu for joining online game
-guiState.sessBars = Array.from(guiState.onlinePg.querySelectorAll(".sessionInfo"));
-guiState.specBars = Array.from(guiState.spectatePg.querySelectorAll(".sessionInfo"));
 window.genSessMenu = function(data,isSpec){
 	let bars = (isSpec==true)? guiState.specBars : guiState.sessBars;
 	bars.forEach(bar => bar.style.display = "none");
@@ -257,7 +272,6 @@ window.showGrid = async function(){
 }
 
 //Resets the grid
-guiState.btnReplayInProg = false;
 window.resetGrid = async function(){
 	if(guiState.btnReplayInProg) throw new Error(enums.busy);
 	guiState.btnReplayInProg = true;

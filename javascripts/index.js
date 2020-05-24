@@ -76,7 +76,7 @@ window.app = {
 		let rconfig = window.localStorage.getItem("settings");
 		if(rconfig != null){
 			let config = JSON.parse(rconfig);
-			//client.url = config.client_url;
+			if(config.client_url != "") client.url = config.client_url;
 			client.name = config.client_name;
 			if(!config.performance_mode) generateBg();
 		}else generateBg();
