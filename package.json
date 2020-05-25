@@ -22,7 +22,6 @@
   },
   "license": "UNLICENSED",
   "dependencies": {
-    "bad-words": "^3.0.3",
     "cordova-android": "^8.1.0",
     "cordova-browser": "^6.0.0",
     "cordova-launch-review": "^3.1.1",

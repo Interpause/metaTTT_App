@@ -1,38 +1,39 @@
 const Session = require("./common/classes/session");
 const gameState = require("./common/classes/gameState");
-const enums = require("./common/utils/enums");
 window.gconf = require("./common/utils/game_config");
 require("./common/utils/utils");
 
 window.game = null;
 window.startLocalGame = async function(){
-	displayLoadingIndicator();
-	await gui.init(guiConfig,window.gconf,false);
-	game = new Session(gui);
+	window.displayLoadingIndicator();
+	await window.gui.init(window.guiConfig,window.gconf,false);
+	let game = new Session(window.gui);
 	game.init(window.gconf);
-	for(let i = 0; i < window.gconf.num_players; i++) game.addPlayer(client.pid);
+	for(let i = 0; i < window.gconf.num_players; i++) game.addPlayer(window.client.pid);
 	game.start();
-	hideLoadingIndicator();
+	window.game = game;
+	window.hideLoadingIndicator();
 }
 
 window.loadGame = async function(statedata,isOnline){
-	displayLoadingIndicator();
-	await gui.init(guiConfig,statedata.config,isOnline);
+	window.displayLoadingIndicator();
+	await window.gui.init(window.guiConfig,statedata.config,isOnline);
 	if(isOnline){
 		let state = new gameState(statedata,true);
 		state.names = statedata.names; //TODO: PID based retrieval
-		gui.receivePlayersInfo(state.player_ids);
-		gui.receiveBoard(state);
+		window.gui.receivePlayersInfo(state.player_ids);
+		window.gui.receiveBoard(state);
 	}else{
-		game = new Session(gui);
+		let game = new Session(window.gui);
 		game.restoreSession(statedata);
 		game.start();
+		window.game = game;
 	}
-	hideLoadingIndicator();
+	window.hideLoadingIndicator();
 }
 
 /* Cordova stuff. */
-window.app = {
+let app = {
     // Application Constructor
     initialize: function() {document.addEventListener('deviceready', this.onDeviceReady.bind(this), false);},
 
@@ -45,14 +46,14 @@ window.app = {
 		document.addEventListener("resume", this.onAppResume.bind(this), false);
 		document.addEventListener("pause", this.onAppPause.bind(this), false);
 		window.screen.orientation.lock('portrait-primary');
-		StatusBar.hide();
+		window.StatusBar.hide();
         this.receivedEvent('deviceready');
     },
 	
 	/** On Pause. */
 	onAppPause: function(){
 		document.querySelector('#bgMusic').pause();
-		if(game.state.winner == -1) window.localStorage.setItem('save',JSON.stringify(game.state));
+		if(window.game.state.winner == -1) window.localStorage.setItem('save',JSON.stringify(window.game.state));
 		else window.localStorage.removeItem('save');
 	},
 	
@@ -63,45 +64,46 @@ window.app = {
 	
 	/** On backKey. */
 	onBackKey: function(){
-		btnBack();	
+		window.btnBack();	
 	},
 
     // Update DOM on a Received Event
     receivedEvent: async function(id) {
 		if(id != "deviceready") return;
-		changeFocus(guiState.gamePg);
-		guiConfig.cont.style.opacity = 1;
+		window.changeFocus(window.guiState.gamePg);
+		window.guiConfig.cont.style.opacity = 1;
 		
 		let rconfig = window.localStorage.getItem("settings");
 		if(rconfig != null){
 			let config = JSON.parse(rconfig);
-			if(config.client_url != "") client.url = config.client_url;
-			client.name = config.client_name;
-			if(!config.performance_mode) generateBg();
-		}else generateBg();
+			if(config.client_url != "") window.client.url = config.client_url;
+			window.client.name = config.client_name;
+			if(!config.performance_mode) window.generateBg();
+		}else window.generateBg();
 		
 		//first time
 		let clientid = window.localStorage.getItem("clientid");
 		if(clientid==null) clientid = gen_uuid();
 		let passwd = window.localStorage.getItem("passwd");
 		if(passwd==null) passwd = gen_uuid();
-		client.pid = clientid;
-		client.passwd = passwd;
-		window.localStorage.setItem("clientid",client.pid);
-		window.localStorage.setItem("passwd",client.passwd);
+		window.client.pid = clientid;
+		window.client.passwd = passwd;
+		window.localStorage.setItem("clientid",window.client.pid);
+		window.localStorage.setItem("passwd",window.client.passwd);
 		//TODO tutorial done flag.
 		
 		let save = window.localStorage.getItem('save');
-		if(save==null) await startLocalGame();
+		if(save==null) await window.startLocalGame();
 		else{
 			try{
-				await loadGame(JSON.parse(save),false);
+				await window.loadGame(JSON.parse(save),false);
 			}catch(e){
 				console.log(e);
-				await startLocalGame();
+				await window.startLocalGame();
 			}
 		}
 		document.querySelector("#splash").style.display = "none";
     }
 };
+window.app = app;
 app.initialize();
