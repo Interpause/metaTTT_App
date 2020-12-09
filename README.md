@@ -1,5 +1,6 @@
 # metaTTT_App
 Cordova HTML5 ES6 metaTTT App
+
 Download at <https://play.google.com/store/apps/details?id=interpause.metaTTT>
 
 Will write the full documentation next time. Maybe.
@@ -31,3 +32,9 @@ Rules (can also be found in credits screen):
 3. The position of the placed piece corresponds to the location of the board used next.
 4. The first player chooses the starting board.
 5. If the placed piece corresponds with a finished board, the next player is allowed to choose any board next.
+
+## Pictures
+[alt text 1](https://play-lh.googleusercontent.com/1CkU1BAa4XT7w3nUZTKv7enCGwB68MWRfd_GWthX9sFQ2NR5Ax7vWXknFz9j7HeHtCM=w1440-h620-rw)
+[alt text 2](https://play-lh.googleusercontent.com/iAjEX1YhRmceL5rjp2dNOvaZJ9FSwBRuJRM08qpo5u4LoDfxzBiY4RT4-K7VXH3qusE=w1440-h620-rw)
+[alt text 3](https://play-lh.googleusercontent.com/opTzvjAjl-KCA2BoWT_0Tr-qfEN5G6O5huZNhVBHmbCRy6rMZprNeeFxJiwlx4npIu8=w1440-h620-rw)
+[alt text 4](https://play-lh.googleusercontent.com/tirh6zjjaLj_SlB6mUUUQ98B0hVjxi2o1Qxfhe_crmyPJ3prAHVR5IQs2S0V-rzgkg=w1440-h620-rw)
