@@ -9,7 +9,7 @@ The code here is organized in its own way, but it is kind of old and reliant on 
 As monorepo was not really a thing back then:
 
 - <https://github.com/Interpause/metaTTT_Server> for the server code (I will document my socket API at least, though I definitely will be rewriting it)
-- <https://github.com/Interpause/metaTTT_Common> common utils and "enums"
+- <https://github.com/Interpause/metaTTT_Common> common utils, "classes" and "enums"
 
 ## Description
 
