@@ -185,7 +185,6 @@ window.saveSettings = function(){
 	let url = settings.querySelector("input[name='client_url']").value;
 	window.client.url = (url == "")? window.client.url : url;
 	let name = settings.querySelector("input[name='client_name']").value;
-	name = filter.clean(name);
 	window.client.name = (name == "")? window.client.name : name;
 	
 	let chkbox = settings.querySelector("input[name='performance_mode']");
