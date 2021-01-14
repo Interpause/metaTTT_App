@@ -4,12 +4,12 @@ Cordova HTML5 ES6 metaTTT App
 
 Download at <https://play.google.com/store/apps/details?id=interpause.metaTTT>.
 
-The code here is organized in its own way, but it is kind of old and reliant on scripts implicitly being run in the global context, rather than being written as modules. As such, even if I were to take the effort to add in JSDoc annotations now, it would not be simple to auto-generate documentation. Therefore, I decided I shall not be including documentation, though my (eventual) rewrite using React or React Native probably will.
+Back when I developed this, I was more familiar with pure HTML and JS approaches. Hence, while the code isn't too messy, it is archaic in that it has multiple scripts/entry points designed to be placed in a HTML page and is hence reliant on those scripts being run globally. As such, even if I were to upgrade to JSDoc annotations now, it would not be easy to auto-generate documentation. And while the way I organized the code means it is not too difficult to switch to modules, it is pointless as I do plan to rewrite the code from scratch using React sooner or later.
 
 As monorepo was not really a thing back then:
 
-- <https://github.com/Interpause/metaTTT_Server> for the server code (I will document my socket API at least, though I definitely will be rewriting it)
-- <https://github.com/Interpause/metaTTT_Common> common utils, "classes" and "enums"
+- <https://github.com/Interpause/metaTTT_Server> for the server code (TODO: document socket API at least, additionally should be modular enough to run typedoc)
+- <https://github.com/Interpause/metaTTT_Common> common utils, classes and "enums". [Documentation](https://interpause.github.io/metaTTT_Common/)
 
 ## Description
 
