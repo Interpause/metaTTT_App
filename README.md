@@ -8,8 +8,10 @@ Back when I developed this, I was more familiar with pure HTML and JS approaches
 
 As monorepo was not really a thing back then:
 
-- <https://github.com/Interpause/metaTTT_Server> for the server code (TODO: document socket API at least, additionally should be modular enough to run typedoc)
-- <https://github.com/Interpause/metaTTT_Common> common utils, classes and "enums". [Documentation](https://interpause.github.io/metaTTT_Common/)
+- <https://github.com/Interpause/metaTTT_Server> for the server code
+  - [Websocket API](https://github.com/Interpause/metaTTT_Server/blob/master/API.md)
+- <https://github.com/Interpause/metaTTT_Common> common utils, classes and "enums"
+  - [Documentation](https://interpause.github.io/metaTTT_Common/)
 
 ## Description
 
