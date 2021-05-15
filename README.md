@@ -4,6 +4,8 @@ Cordova HTML5 ES6 metaTTT App
 
 Download at <https://play.google.com/store/apps/details?id=interpause.metaTTT>.
 
+Or try the browser version at <https://metattt.interpause.dev>.
+
 Back when I developed this, I was more familiar with pure HTML and JS approaches. Hence, while the code isn't too messy, it is archaic in that it has multiple scripts/entry points designed to be placed in a HTML page and is hence reliant on those scripts being run globally. As such, even if I were to upgrade to JSDoc annotations now, it would not be easy to auto-generate documentation. And while the way I organized the code means it is not too difficult to switch to modules, it is pointless as I do plan to rewrite the code from scratch using React sooner or later.
 
 As monorepo was not really a thing back then:
