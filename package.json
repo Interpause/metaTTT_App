@@ -5,8 +5,9 @@
   "description": "Have fun!",
   "main": "index.js",
   "scripts": {
-    "test-android": "cordova run android",
-    "test": "cordova run browser"
+    "test-android": "cordova run android --debug",
+    "test": "cordova run browser",
+    "build": "cordova run android --release --buildConfig --prod"
   },
   "repository": {
     "type": "git",

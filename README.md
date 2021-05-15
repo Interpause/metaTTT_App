@@ -32,7 +32,6 @@ Now with:
 
 • NO TUTorial!... (sorry about that will be done soon)
 
-
 So what are you waiting for? Download it, somehow crash my free-tier rental server, and help me bug test! Yay!
 
 Rules (can also be found in credits screen):

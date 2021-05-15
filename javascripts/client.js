@@ -10,7 +10,7 @@ let client = Object.assign(new EventEmitter(),{
     online:     false,
     ws:         null,
     //url:		"ws://127.0.0.1:8080",
-    url:		"ws://metattt-server.glitch.me"
+    url:		"wss://metattt-server.glitch.me"
 });
 window.client = client;
 
@@ -57,7 +57,7 @@ client.connect = async function(){
         if(!Array.isArray(msg)) msg = [msg];
         msg.forEach(event => {
             this.emit(event['event'],event['data']);
-            console.log(event);
+            console.log('Server: ',event);
         });
     }
     //"authentication"
@@ -81,6 +81,10 @@ client.disconnect = function(e){
 
 client.sendServer = async function(event,data){
     await this.connect();
+    console.log('Client: ',{
+        'event':event,
+        'data':data
+    });
     this.ws.send(JSON.stringify({
         'event':event,
         'data':data
@@ -98,7 +102,6 @@ client.updateState = async function(state){
 };
 
 client.getSavedSessions = async function(){
-    console.log(this);
     window.displayLoadingIndicator();
     this.sendServer(enums.getSessions);
     await once(this,enums.getSessions);

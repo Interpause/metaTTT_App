@@ -34,21 +34,21 @@ window.loadGame = async function(statedata,isOnline){
 
 /* Cordova stuff. */
 let app = {
-    // Application Constructor
-    initialize: function() {document.addEventListener('deviceready', this.onDeviceReady.bind(this), false);},
+	// Application Constructor
+	initialize: function() {document.addEventListener('deviceready', this.onDeviceReady.bind(this), false);},
 
-    // deviceready Event Handler
-    //
-    // Bind any cordova events here. Common events are:
-    // 'pause', 'resume', etc.
-    onDeviceReady: function() {
+	// deviceready Event Handler
+	//
+	// Bind any cordova events here. Common events are:
+	// 'pause', 'resume', etc.
+	onDeviceReady: function() {
 		document.addEventListener("backbutton", this.onBackKey.bind(this), false);
 		document.addEventListener("resume", this.onAppResume.bind(this), false);
 		document.addEventListener("pause", this.onAppPause.bind(this), false);
 		window.screen.orientation.lock('portrait-primary');
 		window.StatusBar.hide();
-        this.receivedEvent('deviceready');
-    },
+		this.receivedEvent('deviceready');
+	},
 	
 	/** On Pause. */
 	onAppPause: function(){
@@ -67,8 +67,8 @@ let app = {
 		window.btnBack();	
 	},
 
-    // Update DOM on a Received Event
-    receivedEvent: async function(id) {
+	// Update DOM on a Received Event
+	receivedEvent: async function(id) {
 		if(id != "deviceready") return;
 		window.changeFocus(window.guiState.gamePg);
 		window.guiConfig.cont.style.opacity = 1;
@@ -102,8 +102,10 @@ let app = {
 				await window.startLocalGame();
 			}
 		}
+		
+		if(cordova.platformId == "browser") document.querySelector(".app").classList.add("browser");
 		document.querySelector("#splash").style.display = "none";
-    }
+	}
 };
 window.app = app;
 app.initialize();
