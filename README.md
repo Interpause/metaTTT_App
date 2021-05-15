@@ -15,22 +15,10 @@ As monorepo was not really a thing back then:
 
 ## Description
 
+(Taken straight from my app page, sorry it is cringe)
+
 If the flashy triangle background or happy (unintendedly slightly dystopian) music is not enough to convince you:
 It is Meta TicTacToe, only the most addictive mentally testing game ever!
-
-Now with:
-• Intuitive colors cause knot and crosses hurt my eyes...!
-
-• Online mode so you will never have to play alone!
-• (well there are online bots to battle so you might be alone)
-• (^And spectating too)
-• (^Oh and SIMULTANEOUS GAMES online)
-
-• MORE CONTROL over the game than any other will allow you!
-
-• PERFORMANCE MODE! (oh wait this isn't a feature just enable it if you're lagging)
-
-• NO TUTorial!... (sorry about that will be done soon)
 
 So what are you waiting for? Download it, somehow crash my free-tier rental server, and help me bug test! Yay!
 
