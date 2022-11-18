@@ -1,5 +1,7 @@
 # metaTTT_App
 
+**NOTE**: The newer React-based version currently published on the beta program on Google Play is closed-source for now.
+
 Cordova HTML5 ES6 metaTTT App
 
 Download at <https://play.google.com/store/apps/details?id=interpause.metaTTT>.
