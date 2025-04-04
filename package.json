@@ -1,7 +1,7 @@
 {
   "name": "interpause.metattt",
   "displayName": "metaTTT",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Have fun!",
   "main": "index.js",
   "scripts": {

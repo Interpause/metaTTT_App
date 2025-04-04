@@ -26,7 +26,8 @@ let gui = {
 	online:  false,	/* Whether game is in online mode. */
 	btnList: [],	/* A list of all grid buttons. */
 	olyList: [],	/* Ordered list of overlays. */
-	isProc:  false /* Whether the grid is still processing input. */
+	isProc:  false, /* Whether the grid is still processing input. */
+	prevMove: null /* Previous move. */
 };
 window.gui = gui;
 	
@@ -40,6 +41,7 @@ gui.init = async function(guiConfig,gameConfig,online){
 	this.guiconf.plyColors = [];
 	this.btnList = [];
 	this.olyList = [];
+	this.prevMove = null;
 	
 	this.hist.push([enums.info,"ONLINE",this.online]);
 	this.guiconf.cont.innerHTML = "";
@@ -103,9 +105,39 @@ gui.getHistLen = function(){
 	return this.hist.length;	
 };
 
+/** Get previous move from state history. */
+gui.getPrevMove = function(){
+	let history = gui.state.history;
+	if(!history || history.length == 0) return null;
+	// Really crappy way to retrieve last move cause young me didnt ensure state.history was pure.
+	for(i=history.length-1;i>=0;i--){
+		let elm = history[i];
+		// Really crappy check because young me never created proper schemas.
+		if(Array.isArray(elm) && elm.length==2 && typeof elm[0] == "string"){
+			return elm[1];
+		}
+  }
+	return null;
+}
+
 /** Updates container to reflect state with some animations. */
 gui.updateContainer = async function(){
 	for(let btn of gui.btnList) btn.disabled = true; //Very immediate.
+
+	//Figure out if highlight of buttons needs to change and to what.
+	let oldMove = gui.prevMove;
+	let newMove = gui.getPrevMove();
+	let change = false;
+	if (oldMove == null && newMove == null) change = false;
+	else if (oldMove == null && newMove != null) change = true;
+	else if (newMove == null && oldMove != null) change = true;
+	else if (oldMove[0] != newMove[0]) change = true;
+	else if (oldMove[1] != newMove[1]) change = true;
+	gui.prevMove = newMove;
+	// console.log("old",oldMove,"new",newMove);
+	let oldBtn = null;
+	let newBtn = null;
+
 	//Individual buttons have to be controlled in some cases.
 	for(let c = 0; c < gui.btnList.length; c++){
 		let btn = gui.btnList[c];
@@ -128,6 +160,19 @@ gui.updateContainer = async function(){
 				btn.style.setProperty("background-color", gui.guiconf.plyColors[gui.state.grid[i][n].winner], "important");
 			}
 		}
+
+		if (change && oldMove != null && oldMove[0] == i && oldMove[1] == n) oldBtn = btn;
+		if (change && newMove != null && newMove[0] == i && newMove[1] == n) newBtn = btn;
+	}
+	
+	// Remove highlight from previous previous move and highlight new previous move.
+	if (oldBtn != null) {
+		oldBtn.style.setProperty("outline", "none");
+		oldBtn.style.setProperty("outline-offset", "0px");
+	}
+	if (newBtn != null) {
+		newBtn.style.setProperty("outline", "solid 2px yellow");
+		newBtn.style.setProperty("outline-offset", "-2px");
 	}
 	
 	//Controls overlays.
@@ -150,9 +195,18 @@ gui.updateContainer = async function(){
 
 	gui.guiconf.cont.style.setProperty("color",gui.guiconf.plyColors[gui.state.cur_player_ind]);
 	if(gui.state.winner != null){
-		gui.gridWinAnim();
-		window.menuWinAnim();
-	}
+    // Remove highlight from previous move to make grid look prettier.
+    if (oldBtn != null) {
+      oldBtn.style.setProperty("outline", "none");
+      oldBtn.style.setProperty("outline-offset", "0px");
+    }
+    if (newBtn != null) {
+      newBtn.style.setProperty("outline", "none");
+      newBtn.style.setProperty("outline-offset", "0px");
+    }
+    gui.gridWinAnim();
+    window.menuWinAnim();
+  }
 };
 
 /** Winning animation for grid. */
