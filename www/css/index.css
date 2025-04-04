@@ -20,6 +20,17 @@
 /**************************
  * APPLICATION STYLESHEET *
  **************************/
+
+:root{
+	overflow: hidden;
+	width: 100vw;
+	max-width: 100vw;
+}
+html{
+	overflow: hidden;
+	width: 100vw;
+	max-width: 100vw;
+}
  
 body{
     font-family:'HelveticaNeue-Light', 'HelveticaNeue', Helvetica, Arial, sans-serif;
@@ -221,6 +232,7 @@ input:checked ~ .checkbox{
 	left: 0;
 	height:100vh;
 	width:100vw;
+	overflow: hidden;
 	will-change: transform;
 	transition: transform 0.3s ease-in;
 }
