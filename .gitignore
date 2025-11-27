@@ -110,3 +110,6 @@ plugins
 jsconfig.json
 build.json
 metaTTT.keystore
+/gradle-*
+/google-services.json
+/release.aab

@@ -10,7 +10,7 @@ let client = Object.assign(new EventEmitter(),{
     online:     false,
     ws:         null,
     //url:		"ws://127.0.0.1:8080",
-    url:		"wss://metattt-server.glitch.me"
+    url:		"wss://metattt.ljhjh.xyz"
 });
 window.client = client;
 
