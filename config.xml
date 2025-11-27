@@ -15,7 +15,7 @@
             <application android:usesCleartextTraffic="true" />
         </edit-config>
         <preference name="HeaderColor" value="#ff9900" />
-        <preference name="android-minSdkVersion" value="34" />
+        <preference name="android-minSdkVersion" value="35" />
         <icon density="mdpi" src="res/icon/android/mdpi.png" />
         <icon density="hdpi" src="res/icon/android/hdpi.png" />
         <icon density="xhdpi" src="res/icon/android/xhdpi.png" />
