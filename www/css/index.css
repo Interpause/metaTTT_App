@@ -328,6 +328,7 @@ input:checked ~ .checkbox{
 
 .btn:disabled{
 	background-color:#eeeeee;
+	color: #333;
 }
 
 .btn.mini {
